@@ -1,0 +1,100 @@
+package com.hyundai.dms.service.impl;
+
+import com.hyundai.dms.dto.AdminDashboardDto;
+import com.hyundai.dms.dto.DealerRankDto;
+import com.hyundai.dms.entity.Dealer;
+import com.hyundai.dms.entity.Vehicle;
+import com.hyundai.dms.repository.DealerRepository;
+import com.hyundai.dms.repository.SalesOrderRepository;
+import com.hyundai.dms.repository.UserRepository;
+import com.hyundai.dms.repository.VehicleRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class AdminServiceImpl {
+    private final DealerRepository dealerRepository;
+    private final SalesOrderRepository salesOrderRepository;
+    private final UserRepository userRepository;
+    private final VehicleRepository vehicleRepository;
+
+    @Transactional(readOnly = true)
+    public AdminDashboardDto getAdminDashboard() {
+        LocalDateTime firstOfThisMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        LocalDateTime now = LocalDateTime.now();
+
+        long totalDealers = dealerRepository.count();
+        long totalUsers = userRepository.count();
+        long globalSales = salesOrderRepository.countByCreatedAtBetween(firstOfThisMonth, now);
+        BigDecimal globalRevenue = salesOrderRepository.sumTotalRevenue(firstOfThisMonth, now);
+        if (globalRevenue == null) globalRevenue = BigDecimal.ZERO;
+
+        List<Dealer> dealers = dealerRepository.findAll();
+        List<DealerRankDto> dealerRankings = new ArrayList<>();
+
+        for (Dealer dealer : dealers) {
+            long dealerSales = salesOrderRepository.countByDealerIdAndCreatedAtBetween(dealer.getId(), firstOfThisMonth, now);
+            BigDecimal dealerRev = salesOrderRepository.sumRevenueByDealerIdAndCreatedAtBetween(dealer.getId(), firstOfThisMonth, now);
+            if (dealerRev == null) dealerRev = BigDecimal.ZERO;
+
+            dealerRankings.add(DealerRankDto.builder()
+                    .dealerId(dealer.getId())
+                    .dealerName(dealer.getName())
+                    .location(dealer.getAddress() != null ? dealer.getAddress() : "Unknown Location")
+                    .isActive(dealer.getIsActive() == null || dealer.getIsActive())
+                    .totalSales(dealerSales)
+                    .totalRevenue(dealerRev)
+                    .build());
+        }
+
+        // Sort by revenue descending
+        dealerRankings.sort((d1, d2) -> d2.getTotalRevenue().compareTo(d1.getTotalRevenue()));
+
+        DealerRankDto topDealer = dealerRankings.isEmpty() ? null : dealerRankings.get(0);
+        DealerRankDto worstDealer = dealerRankings.isEmpty() ? null : dealerRankings.get(dealerRankings.size() - 1);
+
+        // Low stock alerts
+        // ... (keep existing)
+
+        List<String> alerts = new ArrayList<>();
+        List<Vehicle> lowStockVehicles = vehicleRepository.findAll().stream()
+                .filter(v -> v.getStock() != null && v.getStock() < 3)
+                .collect(Collectors.toList());
+
+        for (Vehicle v : lowStockVehicles) {
+            Long dId = v.getDealerId();
+            if (dId != null) {
+                String dName = dealerRepository.findById(dId).map(Dealer::getName).orElse("Unknown Dealer");
+                alerts.add(dName + " has low stock for " + v.getModelName() + " (" + v.getStock() + " left)");
+            }
+        }
+
+        return AdminDashboardDto.builder()
+                .totalDealers(totalDealers)
+                .totalUsers(totalUsers)
+                .globalSalesThisMonth(globalSales)
+                .globalRevenueThisMonth(globalRevenue)
+                .dealerRankings(dealerRankings)
+                .topDealer(topDealer)
+                .worstDealer(worstDealer)
+                .globalAlerts(alerts)
+                .build();
+    }
+
+    @Transactional
+    public void toggleDealerStatus(Long dealerId) {
+        Dealer dealer = dealerRepository.findById(dealerId)
+                .orElseThrow(() -> new RuntimeException("Dealer not found"));
+        dealer.setIsActive(dealer.getIsActive() == null || !dealer.getIsActive());
+        dealerRepository.save(dealer);
+    }
+}

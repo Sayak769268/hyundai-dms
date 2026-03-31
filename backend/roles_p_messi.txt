@@ -1,0 +1,6 @@
+﻿role_id	permission_id	id	name	description	id	name
+2	1	2	ROLE_DEALER	Dealership Owner or Manager	1	VIEW_INVENTORY
+2	2	2	ROLE_DEALER	Dealership Owner or Manager	2	MANAGE_INVENTORY
+2	3	2	ROLE_DEALER	Dealership Owner or Manager	3	VIEW_CUSTOMERS
+2	4	2	ROLE_DEALER	Dealership Owner or Manager	4	MANAGE_CUSTOMERS
+2	5	2	ROLE_DEALER	Dealership Owner or Manager	5	PROCESS_SALES

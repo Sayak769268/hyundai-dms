@@ -1,0 +1,17 @@
+mysql: [Warning] Using a password on the command line interface can be insecure.
+id	username	dealer_id
+1	admin	1
+2	dealer_south	NULL
+3	emp_john	NULL
+4	Sayak_05	NULL
+5	Chetan2004	NULL
+6	Messi	NULL
+7	xyz123	1
+id	name
+1	Prime Hyundai South
+id	model_name	dealer_id
+2	Venue	NULL
+3	Tucson	NULL
+4	Creta	NULL
+5	i20	NULL
+6	Venue	NULL
