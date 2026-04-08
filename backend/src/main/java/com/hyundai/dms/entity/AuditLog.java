@@ -33,6 +33,6 @@ public class AuditLog {
     private String description;
 
     @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", insertable = true, updatable = false)
     private LocalDateTime createdAt;
 }

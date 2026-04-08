@@ -24,8 +24,11 @@ public class VehicleController {
     public ResponseEntity<Page<VehicleDto>> getAll(
             @RequestParam(required = false, defaultValue = "") String search,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) java.math.BigDecimal minPrice,
+            @RequestParam(required = false) java.math.BigDecimal maxPrice,
+            @RequestParam(required = false) Integer year,
             Pageable pageable) {
-        return ResponseEntity.ok(vehicleService.getAllVehicles(search, status, pageable));
+        return ResponseEntity.ok(vehicleService.getAllVehicles(search, status, minPrice, maxPrice, year, pageable));
     }
 
     @GetMapping("/{id}")
@@ -62,5 +65,18 @@ public class VehicleController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         vehicleService.deleteVehicle(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/models")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_DEALER', 'ROLE_EMPLOYEE')")
+    public ResponseEntity<java.util.List<String>> getDistinctModels() {
+        return ResponseEntity.ok(vehicleService.getDistinctModels());
+    }
+
+    @GetMapping("/variants")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_DEALER', 'ROLE_EMPLOYEE')")
+    public ResponseEntity<java.util.List<String>> getVariantsByModel(
+            @RequestParam String modelName) {
+        return ResponseEntity.ok(vehicleService.getVariantsByModel(modelName));
     }
 }

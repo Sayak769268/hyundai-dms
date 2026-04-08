@@ -22,8 +22,9 @@ public class CustomerController {
     public ResponseEntity<Page<CustomerDto>> getAll(
             @RequestParam(required = false, defaultValue = "") String search,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long assignedEmployeeId,
             Pageable pageable) {
-        return ResponseEntity.ok(customerService.getAllCustomers(search, status, pageable));
+        return ResponseEntity.ok(customerService.getAllCustomers(search, status, assignedEmployeeId, pageable));
     }
 
     @GetMapping("/{id}")

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Users, Car, ReceiptText, DollarSign, 
   TrendingUp, TrendingDown, AlertTriangle, 
@@ -53,17 +53,18 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
   const isAdmin = storedUser.roles?.includes('ROLE_ADMIN');
 
   useEffect(() => {
     fetchDashboard();
-  }, [window.location.search]);
+  }, [location.search]);
 
   const fetchDashboard = async () => {
     try {
-      const searchParams = new URLSearchParams(window.location.search);
+      const searchParams = new URLSearchParams(location.search);
       const dealerId = searchParams.get('dealerId');
       setIsImpersonating(!!dealerId);
       
@@ -206,7 +207,7 @@ export default function Dashboard() {
           </div>
 
           {/* Recent Orders Table */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <Clock className="h-5 w-5 text-indigo-500" /> Recent Sales Orders
@@ -265,7 +266,7 @@ export default function Dashboard() {
             </h2>
             <div className="space-y-4">
               {stats.lowStockCount > 0 ? (
-                <div onClick={() => navigate('/inventory')} className="flex items-start gap-4 p-4 rounded-xl bg-red-50 border border-red-100 cursor-pointer hover:bg-red-100 transition group">
+                <div onClick={() => navigate('/inventory?status=LOW_STOCK')} className="flex items-start gap-4 p-4 rounded-xl bg-red-50 border border-red-100 cursor-pointer hover:bg-red-100 transition group">
                   <div className="p-2 bg-red-200 rounded-lg text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors"><PackageSearch className="h-5 w-5" /></div>
                   <div>
                     <h4 className="text-sm font-bold text-red-900">Inventory Shortage</h4>
@@ -283,7 +284,7 @@ export default function Dashboard() {
               )}
 
               {stats.pendingOrdersCount > 0 && (
-                <div onClick={() => navigate('/sales')} className="flex items-start gap-4 p-4 rounded-xl bg-yellow-50 border border-yellow-100 cursor-pointer hover:bg-yellow-100 transition group">
+                <div onClick={() => navigate('/sales?status=PENDING')} className="flex items-start gap-4 p-4 rounded-xl bg-yellow-50 border border-yellow-100 cursor-pointer hover:bg-yellow-100 transition group">
                   <div className="p-2 bg-yellow-200 rounded-lg text-yellow-600 group-hover:bg-yellow-600 group-hover:text-white transition-colors"><Clock className="h-5 w-5" /></div>
                   <div>
                     <h4 className="text-sm font-bold text-yellow-900">Pending Orders</h4>

@@ -54,24 +54,21 @@ public class SalesServiceImpl {
     }
 
     @Transactional(readOnly = true)
-    public Page<SalesOrderDto> getAllSalesOrders(Pageable pageable) {
+    public Page<SalesOrderDto> getAllSalesOrders(String search, String status, java.math.BigDecimal minAmount, java.math.BigDecimal maxAmount, java.time.LocalDateTime fromDate, java.time.LocalDateTime toDate, Pageable pageable) {
+        String s = (search == null || search.isEmpty()) ? null : search;
+        String st = (status == null || status.isEmpty()) ? null : status;
         if (isAdmin()) {
-            Page<SalesOrder> orders = salesOrderRepository.findAll(pageable);
-            return orders.map(this::mapToDto);
+            return salesOrderRepository.findWithFiltersAdmin(s, st, minAmount, maxAmount, fromDate, toDate, pageable).map(this::mapToDto);
         }
-
         Long dealerId = getCurrentDealerId();
-
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        boolean isEmployee = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"));
-
+        boolean isEmployee = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"));
         if (isEmployee) {
             Employee employee = employeeRepository.findByUserUsername(auth.getName())
                     .orElseThrow(() -> new ResourceNotFoundException("Logged in employee not found"));
             return salesOrderRepository.findByEmployeeId(employee.getId(), pageable).map(this::mapToDto);
         }
-        return salesOrderRepository.findAllByDealerId(dealerId, pageable).map(this::mapToDto);
+        return salesOrderRepository.findWithFilters(dealerId, s, st, minAmount, maxAmount, fromDate, toDate, pageable).map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +85,7 @@ public class SalesServiceImpl {
         return mapToDto(order);
     }
 
-    @Transactional
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public SalesOrderDto createSalesOrder(SalesOrderDto dto) {
         Long dealerId = getCurrentDealerId();
 
@@ -111,12 +108,16 @@ public class SalesServiceImpl {
             throw new IllegalArgumentException("Selected vehicle is out of stock");
         }
 
-        if (salesOrderRepository.existsByCustomerIdAndVehicleIdAndStatusNot(customer.getId(), vehicle.getId(), "CANCELLED")) {
-            throw new IllegalArgumentException("Active order already exists for this customer and vehicle");
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        Employee employee = employeeRepository.findByUserUsername(currentUsername).orElse(null);
+
+        // If dealer user (no employee record), find any active employee in their dealership
+        if (employee == null) {
+            employee = employeeRepository.findFirstByDealerId(dealerId).orElse(null);
         }
 
-        Employee employee = employeeRepository.findByUserUsername(
-                SecurityContextHolder.getContext().getAuthentication().getName()).orElse(null);
+        BigDecimal discount = dto.getDiscount() != null ? dto.getDiscount() : BigDecimal.ZERO;
+        BigDecimal finalAmount = vehicle.getBasePrice().subtract(discount);
 
         SalesOrder order = SalesOrder.builder()
                 .customer(customer)
@@ -124,8 +125,8 @@ public class SalesServiceImpl {
                 .employee(employee)
                 .dealerId(dealerId)
                 .price(vehicle.getBasePrice())
-                .discount(dto.getDiscount() != null ? dto.getDiscount() : BigDecimal.ZERO)
-                .finalAmount(vehicle.getBasePrice().subtract(dto.getDiscount() != null ? dto.getDiscount() : BigDecimal.ZERO))
+                .discount(discount)
+                .finalAmount(finalAmount)
                 .status("PENDING")
                 .build();
 
@@ -145,7 +146,7 @@ public class SalesServiceImpl {
         return mapToDto(savedOrder);
     }
 
-    @Transactional
+    @Transactional(isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public SalesOrderDto updateOrderStatus(Long id, String status) {
         SalesOrder order = salesOrderRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Sales Order not found"));

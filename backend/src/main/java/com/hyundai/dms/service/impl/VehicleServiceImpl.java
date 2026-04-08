@@ -40,12 +40,26 @@ public class VehicleServiceImpl {
     }
 
     @Transactional(readOnly = true)
-    public Page<VehicleDto> getAllVehicles(String search, String status, Pageable pageable) {
+    public java.util.List<String> getDistinctModels() {
+        if (isAdmin()) return vehicleRepository.findDistinctModelNamesByDealerId(null);
+        Long dealerId = getCurrentDealerId();
+        return vehicleRepository.findDistinctModelNamesByDealerId(dealerId);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<String> getVariantsByModel(String modelName) {
+        if (isAdmin()) return vehicleRepository.findDistinctVariantsByDealerIdAndModelName(null, modelName);
+        Long dealerId = getCurrentDealerId();
+        return vehicleRepository.findDistinctVariantsByDealerIdAndModelName(dealerId, modelName);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<VehicleDto> getAllVehicles(String search, String status, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice, Integer year, Pageable pageable) {
         if (isAdmin()) {
-            return vehicleRepository.findWithSearchAll(search, status, pageable).map(this::mapToDto);
+            return vehicleRepository.findWithSearchAll(search, status, minPrice, maxPrice, year, pageable).map(this::mapToDto);
         }
         Long dealerId = getCurrentDealerId();
-        return vehicleRepository.findWithSearch(dealerId, search, status, pageable).map(this::mapToDto);
+        return vehicleRepository.findWithSearch(dealerId, search, status, minPrice, maxPrice, year, pageable).map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)

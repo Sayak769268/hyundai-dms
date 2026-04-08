@@ -26,6 +26,47 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
 
     Page<SalesOrder> findAllByDealerId(Long dealerId, Pageable pageable);
 
+    @Query("SELECT s FROM SalesOrder s WHERE s.dealerId = :dealerId AND " +
+           "(:status IS NULL OR s.status = :status) AND " +
+           "(:minAmount IS NULL OR s.finalAmount >= :minAmount) AND " +
+           "(:maxAmount IS NULL OR s.finalAmount <= :maxAmount) AND " +
+           "(:fromDate IS NULL OR s.createdAt >= :fromDate) AND " +
+           "(:toDate IS NULL OR s.createdAt <= :toDate) AND " +
+           "(:search IS NULL OR :search = '' OR " +
+           "LOWER(s.customer.firstName) LIKE LOWER(CONCAT('%',:search,'%')) OR " +
+           "LOWER(s.customer.lastName) LIKE LOWER(CONCAT('%',:search,'%')) OR " +
+           "LOWER(s.vehicle.modelName) LIKE LOWER(CONCAT('%',:search,'%')) OR " +
+           "LOWER(s.vehicle.variant) LIKE LOWER(CONCAT('%',:search,'%')))")
+    Page<SalesOrder> findWithFilters(
+            @Param("dealerId") Long dealerId,
+            @Param("search") String search,
+            @Param("status") String status,
+            @Param("minAmount") java.math.BigDecimal minAmount,
+            @Param("maxAmount") java.math.BigDecimal maxAmount,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate,
+            Pageable pageable);
+
+    @Query("SELECT s FROM SalesOrder s WHERE " +
+           "(:status IS NULL OR s.status = :status) AND " +
+           "(:minAmount IS NULL OR s.finalAmount >= :minAmount) AND " +
+           "(:maxAmount IS NULL OR s.finalAmount <= :maxAmount) AND " +
+           "(:fromDate IS NULL OR s.createdAt >= :fromDate) AND " +
+           "(:toDate IS NULL OR s.createdAt <= :toDate) AND " +
+           "(:search IS NULL OR :search = '' OR " +
+           "LOWER(s.customer.firstName) LIKE LOWER(CONCAT('%',:search,'%')) OR " +
+           "LOWER(s.customer.lastName) LIKE LOWER(CONCAT('%',:search,'%')) OR " +
+           "LOWER(s.vehicle.modelName) LIKE LOWER(CONCAT('%',:search,'%')) OR " +
+           "LOWER(s.vehicle.variant) LIKE LOWER(CONCAT('%',:search,'%')))")
+    Page<SalesOrder> findWithFiltersAdmin(
+            @Param("search") String search,
+            @Param("status") String status,
+            @Param("minAmount") java.math.BigDecimal minAmount,
+            @Param("maxAmount") java.math.BigDecimal maxAmount,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate,
+            Pageable pageable);
+
     // Global
     List<SalesOrder> findTop10ByOrderByCreatedAtDesc();
 

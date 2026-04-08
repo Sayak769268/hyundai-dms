@@ -42,12 +42,17 @@ public class EmployeeController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_DEALER')")
-    public ResponseEntity<Page<EmployeeDto>> getAll(Pageable pageable) {
+    public ResponseEntity<Page<EmployeeDto>> getAll(
+            @RequestParam(required = false, defaultValue = "") String search,
+            @RequestParam(required = false, defaultValue = "") String designation,
+            Pageable pageable) {
         if (isAdmin()) {
             return ResponseEntity.ok(employeeRepository.findAll(pageable).map(this::mapToDto));
         }
         Long dealerId = getCurrentDealerId();
-        return ResponseEntity.ok(employeeRepository.findAllByDealerId(dealerId, pageable).map(this::mapToDto));
+        String s = search.isEmpty() ? null : search;
+        String d = designation.isEmpty() ? null : designation;
+        return ResponseEntity.ok(employeeRepository.findWithSearch(dealerId, s, d, pageable).map(this::mapToDto));
     }
 
     @GetMapping("/{id}")

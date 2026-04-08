@@ -46,29 +46,24 @@ public class CustomerServiceImpl {
     }
 
     @Transactional(readOnly = true)
-    public Page<CustomerDto> getAllCustomers(String search, String statusStr, Pageable pageable) {
+    public Page<CustomerDto> getAllCustomers(String search, String statusStr, Long assignedEmployeeId, Pageable pageable) {
         Customer.CustomerStatus status = null;
         if (statusStr != null && !statusStr.isEmpty()) {
             try { status = Customer.CustomerStatus.valueOf(statusStr.toUpperCase()); }
             catch (IllegalArgumentException ignored) {}
         }
-
         if (isAdmin()) {
             return customerRepository.findAllActiveWithSearch(search, status, pageable).map(this::mapToDto);
         }
-
         Long dealerId = getCurrentDealerId();
-
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isEmployee = auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_EMPLOYEE"));
-
         if (isEmployee && !auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_DEALER"))) {
             User currentUser = getCurrentUser();
-            return customerRepository.findActiveByAssignedEmployee(dealerId, currentUser.getId(), search, status, pageable)
-                    .map(this::mapToDto);
+            return customerRepository.findActiveByAssignedEmployee(dealerId, currentUser.getId(), search, status, pageable).map(this::mapToDto);
         }
-        return customerRepository.findActiveWithSearch(dealerId, search, status, pageable).map(this::mapToDto);
+        return customerRepository.findActiveWithSearch(dealerId, search, status, assignedEmployeeId, pageable).map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)

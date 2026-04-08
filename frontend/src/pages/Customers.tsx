@@ -54,6 +54,7 @@ export default function Customers() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [employeeFilter, setEmployeeFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [confirmArchive, setConfirmArchive] = useState<Customer | null>(null);
@@ -83,6 +84,7 @@ export default function Customers() {
     try {
       let url = `/customers?search=${encodeURIComponent(search)}&page=${page}&size=${pageSize}`;
       if (statusFilter) url += `&status=${statusFilter}`;
+      if (employeeFilter) url += `&assignedEmployeeId=${employeeFilter}`;
       
       const res = await api.get(url);
       setCustomers(res.data?.content ?? []);
@@ -93,7 +95,7 @@ export default function Customers() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, page]);
+  }, [search, statusFilter, employeeFilter, page]);
 
   useEffect(() => {
     const timer = setTimeout(fetchCustomers, 200);
@@ -203,10 +205,25 @@ export default function Customers() {
             <option value="LOST">Lost</option>
           </select>
         </div>
+        <select
+          value={employeeFilter}
+          onChange={e => handleFilterChange(setEmployeeFilter, e.target.value)}
+          className="border border-gray-300 rounded-lg text-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Employees</option>
+          {employees.map(emp => (
+            <option key={emp.id} value={emp.id}>{emp.name}</option>
+          ))}
+        </select>
+        {(search || statusFilter || employeeFilter) && (
+          <button onClick={() => { setSearch(''); setStatusFilter(''); setEmployeeFilter(''); setPage(0); }} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 border border-red-200 px-2 py-1.5 rounded-lg">
+            <X className="h-3 w-3" /> Clear
+          </button>
+        )}
       </div>
 
       {/* Table */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-x-auto">
         {loading ? (
           <div className="p-16 text-center text-gray-400 text-sm">Loading customers...</div>
         ) : customers.length === 0 ? (
@@ -283,14 +300,14 @@ export default function Customers() {
       {/* Add / Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl">
-            <div className="flex justify-between items-center px-6 py-4 border-b">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center px-6 py-4 border-b flex-shrink-0">
               <h2 className="text-lg font-bold text-gray-800">{editingCustomer ? 'Edit Customer' : 'New Customer'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-700 transition">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>

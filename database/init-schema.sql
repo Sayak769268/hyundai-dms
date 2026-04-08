@@ -328,8 +328,8 @@ INSERT INTO role_permissions (role_id, permission_id) VALUES
 (3,1), (3,3), (3,5);
 
 -- 2. Passwords: all set to 'password123' (bcrypt hash)
--- Bycrypt hash for 'password123'
-SET @default_pass = '$2a$10$pLw.H/P0YJ/O6cT0vBOfmO8Y9k6yI6KqF.b8h6Y8A3P7wR.O7yGye';
+-- Bcrypt hash for 'password123'
+SET @default_pass = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
 
 INSERT INTO users (id, username, password_hash, email, full_name, is_active) VALUES
 (1, 'admin', @default_pass, 'admin@hyundai.com', 'Super Admin', 1),

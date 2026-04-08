@@ -39,7 +39,7 @@ export default function AuditLogs() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-  const pageSize = 50;
+  const pageSize = 20;
 
   // Filters
   const [dealerOptions, setDealerOptions] = useState<any[]>([]);
@@ -94,7 +94,7 @@ export default function AuditLogs() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
@@ -152,7 +152,7 @@ export default function AuditLogs() {
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden text-black">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto text-black">
         {loading ? (
           <div className="p-16 text-center text-gray-400">Loading audit trail...</div>
         ) : logs.length === 0 ? (

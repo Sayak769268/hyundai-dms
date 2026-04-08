@@ -226,7 +226,7 @@ public class DataSeederService {
     }
 
     private List<Vehicle> seedInventory(Dealer dealer) {
-        List<Vehicle> existing = vehicleRepository.findWithSearch(dealer.getId(), "", null, org.springframework.data.domain.Pageable.unpaged()).getContent();
+        List<Vehicle> existing = vehicleRepository.findWithSearch(dealer.getId(), "", null, null, null, null, org.springframework.data.domain.Pageable.unpaged()).getContent();
         if (existing.size() >= 15) return existing;
 
         List<Vehicle> created = new ArrayList<>();
@@ -252,7 +252,7 @@ public class DataSeederService {
     }
 
     private List<Customer> seedCustomers(Dealer dealer, List<Employee> employees) {
-        List<Customer> existing = customerRepository.findActiveWithSearch(dealer.getId(), "", null, org.springframework.data.domain.Pageable.unpaged()).getContent();
+        List<Customer> existing = customerRepository.findActiveWithSearch(dealer.getId(), "", null, null, org.springframework.data.domain.Pageable.unpaged()).getContent();
         if (existing.size() >= 30) return existing;
 
         List<Customer> created = new ArrayList<>();

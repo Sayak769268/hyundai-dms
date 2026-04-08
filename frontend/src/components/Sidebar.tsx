@@ -43,7 +43,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-64 bg-gray-900 text-white min-h-screen flex flex-col shadow-xl">
+    <aside className="w-64 bg-gray-900 text-white h-screen flex flex-col shadow-xl sticky top-0 flex-shrink-0">
       <div className="p-6 border-b border-gray-800">
         <h1 className="text-2xl font-bold text-white tracking-wider">HYUNDAI <span className="text-blue-500">DMS</span></h1>
         <p className="text-xs text-gray-400 mt-1">Logged in as: {user?.username}</p>
@@ -55,7 +55,7 @@ export default function Sidebar() {
         )}
       </div>
 
-      <nav className="flex-1 px-4 py-6 space-y-2">
+      <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
         {navItems.map((item) => (
           <NavLink
             key={item.name}

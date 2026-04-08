@@ -74,7 +74,7 @@ export default function Dealers() {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
         {loading ? (
           <div className="p-16 text-center text-gray-400">Loading dealers...</div>
         ) : filteredDealers.length === 0 ? (

@@ -49,6 +49,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
         } catch (Exception e) {
             log.error("Cannot set user authentication: {}", e.getMessage());
+            // Only return 401 if it's a JWT signature/format error, not a user loading error
+            if (e.getMessage() != null && (e.getMessage().contains("signature") || e.getMessage().contains("JWT") || e.getMessage().contains("period"))) {
+                String headerAuth = request.getHeader("Authorization");
+                if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Session expired. Please log in again.\"}");
+                    return;
+                }
+            }
         }
 
         filterChain.doFilter(request, response);

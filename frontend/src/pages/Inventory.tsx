@@ -6,6 +6,7 @@ import Select from 'react-select';
 import api from '../lib/api';
 import { Plus, Search, X, Pencil, Trash2, PackagePlus, Filter, AlertTriangle } from 'lucide-react';
 import Pagination from '../components/Pagination';
+import { useLocation } from 'react-router-dom';
 
 // ── Status config ──────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; cls: string; dot: string }> = {
@@ -62,6 +63,9 @@ export default function Inventory() {
   const [loading, setLoading]           = useState(true);
   const [search, setSearch]             = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [minPrice, setMinPrice]         = useState('');
+  const [maxPrice, setMaxPrice]         = useState('');
+  const [yearFilter, setYearFilter]     = useState('');
   
   // Pagination
   const [page, setPage] = useState(0);
@@ -85,6 +89,14 @@ export default function Inventory() {
   const userRoles: string[] = storedUser?.roles ?? [];
   const isAdmin = userRoles.includes('ROLE_ADMIN');
   const canEdit = !isAdmin;
+  const location = useLocation();
+
+  // Read URL params on mount (e.g. from dashboard shortcuts)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const s = params.get('status');
+    if (s) setStatusFilter(s);
+  }, []);
 
   // ── Forms ──────────────────────────────────────────────────
   const addForm = useForm<VehicleForm>({
@@ -96,18 +108,16 @@ export default function Inventory() {
 
   // ── Load models on mount ────────────────────────────────────
   useEffect(() => {
-    api.get('/models').then(res => {
-      setModelOptions(res.data.map((m: any) => ({ value: m.name, label: m.name, id: m.id })));
+    api.get('/vehicles/models').then(res => {
+      setModelOptions(res.data.map((m: string) => ({ value: m, label: m })));
     }).catch(() => {});
   }, []);
 
   const loadVariants = async (modelName: string, setter: (opts: Option[]) => void) => {
-    const modelData = await api.get('/models');
-    const found = modelData.data.find((m: any) => m.name === modelName);
-    if (found) {
-      const vRes = await api.get(`/models/${found.id}/variants`);
-      setter(vRes.data.map((v: any) => ({ value: v.name, label: v.name })));
-    } else {
+    try {
+      const res = await api.get(`/vehicles/variants?modelName=${encodeURIComponent(modelName)}`);
+      setter(res.data.map((v: string) => ({ value: v, label: v })));
+    } catch {
       setter([]);
     }
   };
@@ -118,6 +128,9 @@ export default function Inventory() {
     try {
       let url = `/vehicles?search=${encodeURIComponent(search)}&page=${page}&size=${pageSize}`;
       if (statusFilter) url += `&status=${statusFilter}`;
+      if (minPrice) url += `&minPrice=${minPrice}`;
+      if (maxPrice) url += `&maxPrice=${maxPrice}`;
+      if (yearFilter) url += `&year=${yearFilter}`;
       
       const res = await api.get(url);
       setVehicles(res.data?.content ?? []);
@@ -125,7 +138,7 @@ export default function Inventory() {
       setTotalElements(res.data?.totalElements ?? 0);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, [search, statusFilter, page]);
+  }, [search, statusFilter, minPrice, maxPrice, yearFilter, page]);
 
   useEffect(() => {
     const t = setTimeout(fetchVehicles, 200);
@@ -265,10 +278,34 @@ export default function Inventory() {
             <option value="OUT_OF_STOCK">🔴 Out of Stock</option>
           </select>
         </div>
+        <input
+          type="number"
+          placeholder="Min Price (₹)"
+          value={minPrice}
+          onChange={e => handleFilterChange(setMinPrice, e.target.value)}
+          className="border border-gray-300 rounded-lg text-sm py-2 px-3 w-36 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <input
+          type="number"
+          placeholder="Max Price (₹)"
+          value={maxPrice}
+          onChange={e => handleFilterChange(setMaxPrice, e.target.value)}
+          className="border border-gray-300 rounded-lg text-sm py-2 px-3 w-36 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        {(search || statusFilter || minPrice || maxPrice) && (
+          <button onClick={() => { setSearch(''); setStatusFilter(''); setMinPrice(''); setMaxPrice(''); setYearFilter(''); setPage(0); }} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 border border-red-200 px-2 py-1.5 rounded-lg">
+            <X className="h-3 w-3" /> Clear
+          </button>
+        )}
+        <input
+          type="number"
+          placeholder="Year (e.g. 2024)"
+          value={yearFilter}
+          onChange={e => handleFilterChange(setYearFilter, e.target.value)}
+          className="border border-gray-300 rounded-lg text-sm py-2 px-3 w-36 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
       </div>
-
-      {/* Table */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
+      <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-x-auto">
         {loading ? (
           <div className="p-16 text-center text-gray-400 text-sm">Loading inventory...</div>
         ) : vehicles.length === 0 ? (
@@ -278,7 +315,7 @@ export default function Inventory() {
           <table className="min-w-full divide-y divide-gray-100">
             <thead className="bg-gray-50">
               <tr>
-                {['Model', 'Variant', 'Year', 'Price (₹)', 'Stock', 'Status', 'Last Updated', 'Actions'].map(h => (
+                {['Model', 'Variant', 'Year', 'Price (₹)', 'Stock', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -310,9 +347,6 @@ export default function Inventory() {
                         <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
                         {sc.label}
                       </span>
-                    </td>
-                    <td className="px-5 py-3 text-xs text-gray-400 font-normal">
-                      {v.updatedAt ? new Date(v.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                     </td>
                     <td className="px-5 py-3 whitespace-nowrap">
                       {canEdit ? (
@@ -362,7 +396,7 @@ export default function Inventory() {
                     {...field}
                     options={modelOptions}
                     styles={selectStyles}
-                    placeholder="Search model (e.g. Creta)..."
+                    placeholder="Select model..."
                     isSearchable
                     onChange={opt => {
                       field.onChange(opt);
@@ -426,6 +460,7 @@ export default function Inventory() {
                     options={modelOptions}
                     styles={selectStyles}
                     isSearchable
+                    placeholder="Select model..."
                     onChange={opt => {
                       field.onChange(opt);
                       editForm.setValue('variant', null);
@@ -509,12 +544,12 @@ export default function Inventory() {
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl">
-        <div className="flex justify-between items-center px-6 py-4 border-b">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="flex justify-between items-center px-6 py-4 border-b flex-shrink-0">
           <h2 className="text-lg font-bold text-gray-800">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition"><X className="h-5 w-5" /></button>
         </div>
-        <div className="p-6 max-h-[80vh] overflow-y-auto">{children}</div>
+        <div className="p-6 overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   );

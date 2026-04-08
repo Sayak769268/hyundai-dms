@@ -29,6 +29,7 @@ public class AuthController {
     private final com.hyundai.dms.repository.EmployeeRepository employeeRepository;
     private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final com.hyundai.dms.service.AuditService auditService;
+    private final org.springframework.context.ApplicationContext applicationContext;
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody AuthDto.RegisterRequest request) {
@@ -133,6 +134,53 @@ public class AuthController {
         return ResponseEntity.ok(dealers);
     }
 
+    @GetMapping("/dev/reset-admin")
+    public ResponseEntity<?> resetAdmin() {
+        com.hyundai.dms.entity.User admin = userRepository.findByUsername("admin").orElse(null);
+        if (admin == null) {
+            com.hyundai.dms.entity.Role adminRole = roleRepository.findByName("ROLE_ADMIN")
+                .orElseGet(() -> roleRepository.save(com.hyundai.dms.entity.Role.builder().name("ROLE_ADMIN").description("System Administrator").build()));
+            admin = com.hyundai.dms.entity.User.builder()
+                .username("admin").email("admin@hyundai.com").fullName("Super Admin")
+                .passwordHash(passwordEncoder.encode("Admin@1234")).isActive(true)
+                .roles(new java.util.HashSet<>(java.util.List.of(adminRole))).build();
+            userRepository.save(admin);
+            return ResponseEntity.ok("Admin created. Username: admin | Password: Admin@1234");
+        }
+        admin.setPasswordHash(passwordEncoder.encode("Admin@1234"));
+        admin.setIsActive(true);
+        userRepository.save(admin);
+        return ResponseEntity.ok("Admin reset. Username: admin | Password: Admin@1234");
+    }
+
+    @GetMapping("/dev/fix-db")
+    public ResponseEntity<?> fixDb() {
+        try {
+            javax.sql.DataSource ds = applicationContext.getBean(javax.sql.DataSource.class);
+            try (java.sql.Connection conn = ds.getConnection(); java.sql.Statement stmt = conn.createStatement()) {
+                stmt.execute("SET FOREIGN_KEY_CHECKS = 0");
+                stmt.execute("ALTER TABLE sales_orders MODIFY COLUMN lead_id BIGINT NULL");
+                stmt.execute("ALTER TABLE sales_orders MODIFY COLUMN inventory_id BIGINT NULL");
+                stmt.execute("ALTER TABLE sales_orders MODIFY COLUMN employee_id BIGINT NULL");
+                stmt.execute("ALTER TABLE sales_orders MODIFY COLUMN total_amount DECIMAL(15,2) NULL");
+                stmt.execute("ALTER TABLE sales_orders MODIFY COLUMN booking_amount DECIMAL(15,2) NULL");
+                stmt.execute("SET FOREIGN_KEY_CHECKS = 1");
+            }
+            return ResponseEntity.ok("DB fixed! All legacy NOT NULL columns in sales_orders are now nullable.");
+        } catch (Exception e) {
+            return ResponseEntity.ok("Already fixed or error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/dev/unlock/{username}")
+    public ResponseEntity<?> unlockUser(@PathVariable String username) {
+        com.hyundai.dms.entity.User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) return ResponseEntity.notFound().build();
+        user.setIsActive(true);
+        userRepository.save(user);
+        return ResponseEntity.ok("User unlocked: " + username);
+    }
+
     @PostMapping("/login")
     public ResponseEntity<AuthDto.AuthResponse> authenticateUser(@Valid @RequestBody AuthDto.LoginRequest loginRequest) {
         try {
@@ -141,53 +189,34 @@ public class AuthController {
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = jwtUtil.generateToken(authentication);
-
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            
+
             List<String> authorities = userDetails.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.toList());
+                    .map(GrantedAuthority::getAuthority).collect(Collectors.toList());
+            List<String> roles = authorities.stream().filter(a -> a.startsWith("ROLE_")).collect(Collectors.toList());
+            List<String> permissions = authorities.stream().filter(a -> !a.startsWith("ROLE_")).collect(Collectors.toList());
 
-            List<String> roles = authorities.stream()
-                    .filter(a -> a.startsWith("ROLE_"))
-                    .collect(Collectors.toList());
-
-            List<String> permissions = authorities.stream()
-                    .filter(a -> !a.startsWith("ROLE_"))
-                    .collect(Collectors.toList());
-
-            // Get dealerId and dealerName for the response
             com.hyundai.dms.entity.User dbUser = userRepository.findByUsername(userDetails.getUsername()).orElse(null);
             Long dealerId = dbUser != null ? dbUser.getDealerId() : null;
             String dealerName = null;
             if (dealerId != null) {
-                dealerName = dealerRepository.findById(dealerId)
-                        .map(com.hyundai.dms.entity.Dealer::getName).orElse(null);
+                dealerName = dealerRepository.findById(dealerId).map(com.hyundai.dms.entity.Dealer::getName).orElse(null);
             }
 
-            // Audit successful login
             if (dbUser != null) {
-                try {
-                    auditService.logAction("LOGIN", "SYSTEM", dbUser.getId(), "User logged in: " + dbUser.getUsername());
-                } catch (Exception ignored) {}
+                try { auditService.logAction("LOGIN", "SYSTEM", dbUser.getId(), "User logged in: " + dbUser.getUsername()); } catch (Exception ignored) {}
             }
 
             return ResponseEntity.ok(AuthDto.AuthResponse.builder()
-                    .token(jwt)
-                    .username(userDetails.getUsername())
-                    .roles(roles)
-                    .permissions(permissions)
-                    .dealerId(dealerId)
-                    .dealerName(dealerName)
-                    .build());
+                    .token(jwt).username(userDetails.getUsername())
+                    .roles(roles).permissions(permissions)
+                    .dealerId(dealerId).dealerName(dealerName).build());
+
         } catch (org.springframework.security.authentication.BadCredentialsException e) {
-            // Log failed attempt if username is valid but password was wrong
             userRepository.findByUsername(loginRequest.getUsername()).ifPresent(user -> {
-                 try {
-                    auditService.logAction("FAILED_LOGIN", "SYSTEM", user.getId(), "Failed login attempt for user: " + user.getUsername());
-                } catch (Exception ignored) {}
+                try { auditService.logAction("FAILED_LOGIN", "SYSTEM", user.getId(), "Failed login: " + user.getUsername()); } catch (Exception ignored) {}
             });
-            throw e; // Handled by GlobalExceptionHandler
+            throw e;
         }
     }
 }

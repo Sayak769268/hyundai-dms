@@ -62,20 +62,24 @@ public class AdminServiceImpl {
         DealerRankDto topDealer = dealerRankings.isEmpty() ? null : dealerRankings.get(0);
         DealerRankDto worstDealer = dealerRankings.isEmpty() ? null : dealerRankings.get(dealerRankings.size() - 1);
 
-        // Low stock alerts
-        // ... (keep existing)
-
+        // Group low stock alerts by dealer — one summary per dealer
         List<String> alerts = new ArrayList<>();
         List<Vehicle> lowStockVehicles = vehicleRepository.findAll().stream()
                 .filter(v -> v.getStock() != null && v.getStock() < 3)
                 .collect(Collectors.toList());
 
-        for (Vehicle v : lowStockVehicles) {
-            Long dId = v.getDealerId();
-            if (dId != null) {
-                String dName = dealerRepository.findById(dId).map(Dealer::getName).orElse("Unknown Dealer");
-                alerts.add(dName + " has low stock for " + v.getModelName() + " (" + v.getStock() + " left)");
-            }
+        // Group by dealerId
+        java.util.Map<Long, List<Vehicle>> byDealer = lowStockVehicles.stream()
+                .filter(v -> v.getDealerId() != null)
+                .collect(Collectors.groupingBy(Vehicle::getDealerId));
+
+        for (java.util.Map.Entry<Long, List<Vehicle>> entry : byDealer.entrySet()) {
+            String dName = dealerRepository.findById(entry.getKey()).map(Dealer::getName).orElse("Unknown Dealer");
+            List<Vehicle> vehicles = entry.getValue();
+            String vehicleList = vehicles.stream()
+                    .map(v -> v.getModelName() + " (" + v.getStock() + " left)")
+                    .collect(Collectors.joining(", "));
+            alerts.add(dName + " — " + vehicles.size() + " low stock: " + vehicleList);
         }
 
         return AdminDashboardDto.builder()
@@ -94,7 +98,14 @@ public class AdminServiceImpl {
     public void toggleDealerStatus(Long dealerId) {
         Dealer dealer = dealerRepository.findById(dealerId)
                 .orElseThrow(() -> new RuntimeException("Dealer not found"));
-        dealer.setIsActive(dealer.getIsActive() == null || !dealer.getIsActive());
+        boolean newStatus = !(dealer.getIsActive() != null && dealer.getIsActive());
+        dealer.setIsActive(newStatus);
         dealerRepository.save(dealer);
+
+        // Also lock/unlock all users belonging to this dealer
+        userRepository.findAllByDealerId(dealerId).forEach(user -> {
+            user.setIsActive(newStatus);
+            userRepository.save(user);
+        });
     }
 }

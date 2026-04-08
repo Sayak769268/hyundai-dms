@@ -6,6 +6,7 @@ import Select from 'react-select';
 import api from '../lib/api';
 import { Plus, Search, X, Eye, CheckCircle, HandCoins, AlertTriangle, Filter } from 'lucide-react';
 import Pagination from '../components/Pagination';
+import { useLocation } from 'react-router-dom';
 
 // ── Status config ──────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
@@ -68,6 +69,11 @@ export default function Sales() {
   const [orders, setOrders] = useState<SalesOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
   
   // Pagination
   const [page, setPage] = useState(0);
@@ -76,6 +82,14 @@ export default function Sales() {
   const pageSize = 15;
 
   const isAdmin = JSON.parse(localStorage.getItem('user') || '{}').roles?.includes('ROLE_ADMIN');
+  const location = useLocation();
+
+  // Read URL params on mount (e.g. from dashboard shortcuts)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const s = params.get('status');
+    if (s) setStatusFilter(s);
+  }, []);
 
   // Modals
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -98,13 +112,18 @@ export default function Sales() {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
-      // Note: Backend currently ignores search on sales endpoint, but we send it for future-proofing
-      const res = await api.get(`/sales?page=${page}&size=${pageSize}`);
+      let url = `/sales?page=${page}&size=${pageSize}&search=${encodeURIComponent(search)}`;
+      if (statusFilter) url += `&status=${statusFilter}`;
+      if (fromDate) url += `&fromDate=${fromDate}`;
+      if (toDate) url += `&toDate=${toDate}`;
+      if (minAmount) url += `&minAmount=${minAmount}`;
+      if (maxAmount) url += `&maxAmount=${maxAmount}`;
+      const res = await api.get(url);
       setOrders(res.data?.content || []);
       setTotalPages(res.data?.totalPages || 0);
       setTotalElements(res.data?.totalElements || 0);
     } catch { /* Handle */ } finally { setLoading(false); }
-  }, [page]);
+  }, [page, search, statusFilter, fromDate, toDate, minAmount, maxAmount]);
 
   useEffect(() => {
     fetchOrders();
@@ -157,9 +176,15 @@ export default function Sales() {
       setOrders(prev => [res.data, ...prev]);
       setTotalElements(prev => prev + 1);
       setIsAddOpen(false);
+      fetchOrders();
     } catch (err: any) {
+      const status = err.response?.status;
+      if (status === 401 || status === 403) {
+        setErrorMsg('Session expired. Please sign out and sign back in.');
+        return;
+      }
       const msg = err.response?.data?.message || err.response?.data || 'An unexpected error occurred';
-      setErrorMsg(typeof msg === 'string' ? msg : 'Check validation rules');
+      setErrorMsg(typeof msg === 'string' ? msg : 'Failed to create order. Please try again.');
     }
   };
 
@@ -192,7 +217,7 @@ export default function Sales() {
       </div>
 
       {/* Filter / Search */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 flex items-center">
+      <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 max-w-sm">
           <Search className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -203,11 +228,36 @@ export default function Sales() {
             className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 outline-none transition"
           />
         </div>
+        <select
+          value={statusFilter}
+          onChange={e => handleFilterChange(setStatusFilter, e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none"
+        >
+          <option value="">All Statuses</option>
+          <option value="PENDING">Pending</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="INVOICED">Invoiced</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
+        {(search || statusFilter) && (
+          <button onClick={() => { setSearch(''); setStatusFilter(''); setFromDate(''); setToDate(''); setMinAmount(''); setMaxAmount(''); setPage(0); }} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 border border-red-200 px-2 py-1.5 rounded-lg">
+            <X className="h-3 w-3" /> Clear
+          </button>
+        )}
+        <input type="date" value={fromDate} onChange={e => handleFilterChange(setFromDate, e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none" />
+        <span className="text-gray-400 text-sm">–</span>
+        <input type="date" value={toDate} onChange={e => handleFilterChange(setToDate, e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 outline-none" />
+        <input type="number" placeholder="Min ₹" value={minAmount} onChange={e => handleFilterChange(setMinAmount, e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-28 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+        <input type="number" placeholder="Max ₹" value={maxAmount} onChange={e => handleFilterChange(setMaxAmount, e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-28 focus:ring-blue-500 focus:border-blue-500 outline-none" />
         <p className="ml-auto text-xs text-gray-400 italic">Total: {totalElements} orders</p>
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
         {loading ? (
           <div className="p-16 text-center text-gray-400">Loading orders...</div>
         ) : orders.length === 0 ? (
@@ -426,12 +476,12 @@ export default function Sales() {
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <h2 className="text-lg font-bold text-gray-900">{title}</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"><X className="h-5 w-5" /></button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-6 overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   );

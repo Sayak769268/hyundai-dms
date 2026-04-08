@@ -166,7 +166,7 @@ export default function Admin() {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
              <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-blue-500" /> Dealership Leaderboard
@@ -208,9 +208,12 @@ export default function Admin() {
                        <td className="px-6 py-4 text-gray-600 font-medium">{dealer.totalSales} Units</td>
                        <td className="px-6 py-4 font-bold text-green-600">₹{(dealer.totalRevenue / 100000).toLocaleString('en-IN')}L</td>
                        <td className="px-6 py-4">
-                         <div className="flex items-center text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity font-bold text-sm">
-                           View Data <Navigation className="h-4 w-4 ml-1" />
-                         </div>
+                         <button
+                           onClick={(e) => { e.stopPropagation(); handleDealerClick(dealer.dealerId); }}
+                           className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                         >
+                           View Data <Navigation className="h-3.5 w-3.5" />
+                         </button>
                        </td>
                      </tr>
                    ))}

@@ -15,9 +15,9 @@ import Dealers from './pages/Dealers';
 import AuditLogs from './pages/AuditLogs';
 
 const DashboardLayout = ({ children }: { children?: React.ReactNode }) => (
-  <div className="flex bg-gray-50 min-h-screen">
+  <div className="flex h-screen bg-gray-50 overflow-hidden">
     <Sidebar />
-    <main className="flex-1 p-8 overflow-y-auto h-screen">
+    <main className="flex-1 p-8 overflow-y-auto overflow-x-hidden">
       {children}
     </main>
   </div>

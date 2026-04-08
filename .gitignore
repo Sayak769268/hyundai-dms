@@ -2,10 +2,25 @@
 node_modules/
 dist/
 
+# Java / Maven
+target/
+*.class
+
+# Logs
+*.log
+logs/
 
 # Env
 .env
 
+# IDE
+.idea/
+.vscode/
+
 # OS
 .DS_Store
 Thumbs.db
+
+# Temp files
+tmp*
+*.tmp

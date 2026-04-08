@@ -1,0 +1,1 @@
+{"token":"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJraXJhbl9tb3RvcnMiLCJpYXQiOjE3NzU1Nzg5NDEsImV4cCI6MTc3NTY2NTM0MX0.MEa_W0mQ8TSqMhMW8rYyhlN3g3RIPbXRUT64LLEkx0g","username":"kiran_motors","roles":["ROLE_DEALER"],"permissions":["MANAGE_CUSTOMERS","MANAGE_INVENTORY","PROCESS_SALES","VIEW_CUSTOMERS","VIEW_INVENTORY"],"dealerId":2,"dealerName":"Kiran Motors Hyundai"}

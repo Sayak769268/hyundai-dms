@@ -34,6 +34,16 @@ public class SalesOrder {
     @Column(name = "dealer_id")
     private Long dealerId;
 
+    // Legacy columns from old schema — kept nullable with defaults to avoid constraint errors
+    @Column(name = "lead_id")
+    private Long leadId;
+
+    @Column(name = "total_amount", precision = 15, scale = 2)
+    private BigDecimal totalAmount;
+
+    @Column(name = "booking_amount", precision = 15, scale = 2)
+    private BigDecimal bookingAmount;
+
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal price;
 
@@ -54,5 +64,7 @@ public class SalesOrder {
     public void prePersist() {
         if (discount == null) discount = BigDecimal.ZERO;
         if (status == null) status = "PENDING";
-    }
-}
+        // Set legacy columns to safe defaults so old NOT NULL constraints don't fail
+        if (totalAmount == null) totalAmount = finalAmount != null ? finalAmount : BigDecimal.ZERO;
+        if (bookingAmount == null) bookingAmount = BigDecimal.ZERO;
+    }}

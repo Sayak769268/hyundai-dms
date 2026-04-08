@@ -21,8 +21,17 @@ public class SalesController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_DEALER', 'ROLE_EMPLOYEE')")
-    public ResponseEntity<Page<SalesOrderDto>> getAll(Pageable pageable) {
-        return ResponseEntity.ok(salesService.getAllSalesOrders(pageable));
+    public ResponseEntity<Page<SalesOrderDto>> getAll(
+            @RequestParam(required = false, defaultValue = "") String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) java.math.BigDecimal minAmount,
+            @RequestParam(required = false) java.math.BigDecimal maxAmount,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            Pageable pageable) {
+        java.time.LocalDateTime from = fromDate != null && !fromDate.isEmpty() ? java.time.LocalDate.parse(fromDate).atStartOfDay() : null;
+        java.time.LocalDateTime to = toDate != null && !toDate.isEmpty() ? java.time.LocalDate.parse(toDate).atTime(23, 59, 59) : null;
+        return ResponseEntity.ok(salesService.getAllSalesOrders(search, status, minAmount, maxAmount, from, to, pageable));
     }
 
     @GetMapping("/{id}")

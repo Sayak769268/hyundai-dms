@@ -19,14 +19,16 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     // Active customers only, with optional search across name, email, phone (Dealer-scoped)
     @Query("SELECT c FROM Customer c WHERE c.isActive = true AND c.dealer.id = :dealerId AND " +
            "(:status IS NULL OR c.status = :status) AND " +
+           "(:assignedEmployeeId IS NULL OR c.assignedEmployeeId = :assignedEmployeeId) AND " +
            "(:search IS NULL OR :search = '' OR LOWER(c.firstName) LIKE LOWER(CONCAT('%',:search,'%')) " +
            "OR LOWER(c.lastName) LIKE LOWER(CONCAT('%',:search,'%')) " +
            "OR LOWER(c.email) LIKE LOWER(CONCAT('%',:search,'%')) " +
            "OR c.phone LIKE CONCAT('%',:search,'%'))")
     Page<Customer> findActiveWithSearch(
-            @Param("dealerId") Long dealerId, 
-            @Param("search") String search, 
+            @Param("dealerId") Long dealerId,
+            @Param("search") String search,
             @Param("status") Customer.CustomerStatus status,
+            @Param("assignedEmployeeId") Long assignedEmployeeId,
             Pageable pageable);
 
     // Admin-scoped: see all active customers across all dealers
