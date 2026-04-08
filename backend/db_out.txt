@@ -1,0 +1,5 @@
+﻿id	model_name	stock
+2	Venue	0
+3	Tucson	0
+4	Creta	10
+5	i20	57
