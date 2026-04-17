@@ -38,8 +38,10 @@ export default function Login() {
       navigate('/');
     } catch (err: any) {
       const status = err.response?.status;
+      const serverMsg = err.response?.data?.message;
       if (status === 401) setError('Invalid username or password.');
-      else if (status === 423) setError(err.response?.data?.message || 'Account is locked.');
+      else if (status === 423) setError(serverMsg || 'Your account is locked due to multiple failed login attempts. Try again after 30 minutes.');
+      else if (status === 403) setError(serverMsg || 'Your account has been deactivated or expired. Please contact admin.');
       else setError('Login failed. Please try again.');
     }
   };
@@ -90,7 +92,7 @@ export default function Login() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Username <span className="text-red-500">*</span></label>
               <div className="relative">
                 <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
                 <input
@@ -104,7 +106,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password <span className="text-red-500">*</span></label>
               <div className="relative">
                 <LockIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
                 <input

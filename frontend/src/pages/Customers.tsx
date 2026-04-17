@@ -58,6 +58,11 @@ export default function Customers() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [confirmArchive, setConfirmArchive] = useState<Customer | null>(null);
+
+  const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const userRoles: string[] = storedUser?.roles ?? [];
+  const isEmployee = userRoles.includes('ROLE_EMPLOYEE') && !userRoles.includes('ROLE_DEALER');
+  const isAdmin = userRoles.includes('ROLE_ADMIN');
   
   // Pagination
   const [page, setPage] = useState(0);
@@ -168,7 +173,7 @@ export default function Customers() {
           <h1 className="text-3xl font-bold text-gray-900">Customers CRM</h1>
           <p className="text-sm text-gray-500 mt-1">{totalElements} active customers</p>
         </div>
-        {!JSON.parse(localStorage.getItem('user') || '{}').roles?.includes('ROLE_ADMIN') && (
+        {!JSON.parse(localStorage.getItem('user') || '{}').roles?.includes('ROLE_ADMIN') && !isEmployee && (
           <button
             onClick={openAddModal}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors shadow-sm"
@@ -266,20 +271,24 @@ export default function Customers() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button
-                        onClick={() => openEditModal(c)}
-                        className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors"
-                        title="Edit"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setConfirmArchive(c)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                        title="Archive"
-                      >
-                        <Archive className="h-4 w-4" />
-                      </button>
+                      {!isEmployee && (
+                        <>
+                          <button
+                            onClick={() => openEditModal(c)}
+                            className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-md transition-colors"
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setConfirmArchive(c)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            title="Archive"
+                          >
+                            <Archive className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

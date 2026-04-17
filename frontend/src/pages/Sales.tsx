@@ -82,6 +82,7 @@ export default function Sales() {
   const pageSize = 15;
 
   const isAdmin = JSON.parse(localStorage.getItem('user') || '{}').roles?.includes('ROLE_ADMIN');
+  const isEmployeeRole = JSON.parse(localStorage.getItem('user') || '{}').roles?.includes('ROLE_EMPLOYEE');
   const location = useLocation();
 
   // Read URL params on mount (e.g. from dashboard shortcuts)
@@ -206,7 +207,7 @@ export default function Sales() {
           <h1 className="text-3xl font-bold text-gray-900">Dealership Sales</h1>
           <p className="text-sm text-gray-500 mt-1">Manage processing and invoices for vehicle sales.</p>
         </div>
-        {!isAdmin && (
+        {!isAdmin && !isEmployeeRole && (
           <button
             onClick={openCreateModal}
             className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold flex items-center shadow-sm transition"
@@ -437,7 +438,7 @@ export default function Sales() {
 
             {/* Order Status Flow Pipeline */}
             <div className="pt-4 border-t border-gray-100">
-              <h4 className="text-sm font-bold text-gray-800 mb-3">Update Progress</h4>
+              <h4 className="text-sm font-bold text-gray-800 mb-3">{isEmployeeRole ? 'Order Status' : 'Update Progress'}</h4>
               {viewOrder.status === 'CANCELLED' ? (
                 <div className="bg-red-50 text-red-800 p-4 rounded-lg text-sm font-medium text-center border border-red-200">
                   This order was permanently cancelled and stock has been released.
@@ -445,6 +446,10 @@ export default function Sales() {
               ) : viewOrder.status === 'INVOICED' ? (
                 <div className="bg-green-50 text-green-800 p-4 rounded-lg text-sm font-medium text-center flex items-center justify-center gap-2 border border-green-200">
                   <CheckCircle className="h-5 w-5" /> Order Successfully Completed!
+                </div>
+              ) : isEmployeeRole ? (
+                <div className="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm font-medium text-center border border-blue-200">
+                  Current status: <span className="font-bold">{viewOrder.status}</span>
                 </div>
               ) : (
                 <div className="flex gap-3">

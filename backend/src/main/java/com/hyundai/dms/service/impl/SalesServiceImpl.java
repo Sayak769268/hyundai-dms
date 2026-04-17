@@ -64,9 +64,11 @@ public class SalesServiceImpl {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isEmployee = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"));
         if (isEmployee) {
-            Employee employee = employeeRepository.findByUserUsername(auth.getName())
-                    .orElseThrow(() -> new ResourceNotFoundException("Logged in employee not found"));
-            return salesOrderRepository.findByEmployeeId(employee.getId(), pageable).map(this::mapToDto);
+            Employee employee = employeeRepository.findByUserUsername(auth.getName()).orElse(null);
+            if (employee != null) {
+                return salesOrderRepository.findByEmployeeId(employee.getId(), pageable).map(this::mapToDto);
+            }
+            return Page.empty(pageable);
         }
         return salesOrderRepository.findWithFilters(dealerId, s, st, minAmount, maxAmount, fromDate, toDate, pageable).map(this::mapToDto);
     }

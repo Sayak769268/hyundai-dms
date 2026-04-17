@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Car, ReceiptText, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, Car, ReceiptText, LogOut, ShieldAlert, Building2, ClipboardList } from 'lucide-react';
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -23,9 +23,9 @@ export default function Sidebar() {
   ];
 
   if (isAdmin) {
-    navItems.push({ name: 'Manage Dealers', path: '/dealers', icon: Users });
+    navItems.push({ name: 'Manage Dealers', path: '/dealers', icon: Building2 });
     navItems.push({ name: 'Global Sales', path: '/sales', icon: ReceiptText });
-    navItems.push({ name: 'Audit Logs', path: '/audit', icon: ReceiptText });
+    navItems.push({ name: 'Audit Logs', path: '/audit', icon: ShieldAlert });
   }
 
   if (isDealer) {
@@ -37,9 +37,9 @@ export default function Sidebar() {
 
   if (isEmployee) {
     navItems.push({ name: 'My Customers', path: '/customers', icon: Users });
-    navItems.push({ name: 'My Sales Orders', path: '/sales', icon: ReceiptText });
-    navItems.push({ name: 'View Inventory', path: '/inventory', icon: Car });
-    navItems.push({ name: 'Test Drives', path: '/test-drives', icon: Car });
+    navItems.push({ name: 'My Sales', path: '/sales', icon: ReceiptText });
+    navItems.push({ name: 'Inventory', path: '/inventory', icon: Car });
+    navItems.push({ name: 'Test Drives', path: '/test-drives', icon: ClipboardList });
   }
 
   return (

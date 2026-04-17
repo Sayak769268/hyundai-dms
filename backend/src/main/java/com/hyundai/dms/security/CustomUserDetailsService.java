@@ -37,8 +37,12 @@ public class CustomUserDetailsService implements UserDetailsService {
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPasswordHash(),
-                user.getIsActive() != null && user.getIsActive(),
-                true, true, true,
+                user.getIsActive() != null && user.getIsActive(),   // enabled
+                true,                                                 // accountNonExpired
+                true,                                                 // credentialsNonExpired
+                !(Boolean.TRUE.equals(user.getAccountLocked()) &&    // accountNonLocked
+                  user.getLockTime() != null &&
+                  user.getLockTime().plusMinutes(30).isAfter(java.time.LocalDateTime.now())),
                 authorities
         );
     }

@@ -149,6 +149,9 @@ public class AuthController {
         }
         admin.setPasswordHash(passwordEncoder.encode("Admin@1234"));
         admin.setIsActive(true);
+        admin.setFailedAttempts(0);
+        admin.setAccountLocked(false);
+        admin.setLockTime(null);
         userRepository.save(admin);
         return ResponseEntity.ok("Admin reset. Username: admin | Password: Admin@1234");
     }
@@ -165,10 +168,13 @@ public class AuthController {
                 stmt.execute("ALTER TABLE sales_orders MODIFY COLUMN total_amount DECIMAL(15,2) NULL");
                 stmt.execute("ALTER TABLE sales_orders MODIFY COLUMN booking_amount DECIMAL(15,2) NULL");
                 stmt.execute("SET FOREIGN_KEY_CHECKS = 1");
+                // Activate all dealers and users
+                stmt.execute("UPDATE dealers SET is_active = 1 WHERE id > 0");
+                stmt.execute("UPDATE users SET is_active = 1 WHERE id > 0");
             }
-            return ResponseEntity.ok("DB fixed! All legacy NOT NULL columns in sales_orders are now nullable.");
+            return ResponseEntity.ok("DB fixed! All dealers and users activated.");
         } catch (Exception e) {
-            return ResponseEntity.ok("Already fixed or error: " + e.getMessage());
+            return ResponseEntity.ok("Partial fix or already done: " + e.getMessage());
         }
     }
 
@@ -177,6 +183,9 @@ public class AuthController {
         com.hyundai.dms.entity.User user = userRepository.findByUsername(username).orElse(null);
         if (user == null) return ResponseEntity.notFound().build();
         user.setIsActive(true);
+        user.setFailedAttempts(0);
+        user.setAccountLocked(false);
+        user.setLockTime(null);
         userRepository.save(user);
         return ResponseEntity.ok("User unlocked: " + username);
     }
@@ -184,6 +193,29 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthDto.AuthResponse> authenticateUser(@Valid @RequestBody AuthDto.LoginRequest loginRequest) {
         try {
+            // Pre-check: account lock and expiry BEFORE attempting auth
+            com.hyundai.dms.entity.User preCheck = userRepository.findByUsername(loginRequest.getUsername()).orElse(null);
+            if (preCheck != null) {
+                // Check expiry
+                if (preCheck.getAccountExpiryDate() != null && preCheck.getAccountExpiryDate().isBefore(java.time.LocalDateTime.now())) {
+                    throw new org.springframework.security.authentication.CredentialsExpiredException(
+                        "Your account has expired. Please contact admin.");
+                }
+                // Check lock — auto-unlock after 30 min
+                if (Boolean.TRUE.equals(preCheck.getAccountLocked())) {
+                    if (preCheck.getLockTime() != null && preCheck.getLockTime().plusMinutes(30).isBefore(java.time.LocalDateTime.now())) {
+                        // Auto-unlock
+                        preCheck.setAccountLocked(false);
+                        preCheck.setFailedAttempts(0);
+                        preCheck.setLockTime(null);
+                        userRepository.save(preCheck);
+                    } else {
+                        throw new org.springframework.security.authentication.LockedException(
+                            "Your account is locked due to multiple failed login attempts. Try again after 30 minutes.");
+                    }
+                }
+            }
+
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
@@ -203,7 +235,12 @@ public class AuthController {
                 dealerName = dealerRepository.findById(dealerId).map(com.hyundai.dms.entity.Dealer::getName).orElse(null);
             }
 
+            // Reset failed attempts on successful login
             if (dbUser != null) {
+                dbUser.setFailedAttempts(0);
+                dbUser.setAccountLocked(false);
+                dbUser.setLockTime(null);
+                userRepository.save(dbUser);
                 try { auditService.logAction("LOGIN", "SYSTEM", dbUser.getId(), "User logged in: " + dbUser.getUsername()); } catch (Exception ignored) {}
             }
 
@@ -212,9 +249,20 @@ public class AuthController {
                     .roles(roles).permissions(permissions)
                     .dealerId(dealerId).dealerName(dealerName).build());
 
+        } catch (org.springframework.security.authentication.LockedException |
+                 org.springframework.security.authentication.CredentialsExpiredException e) {
+            throw e;
         } catch (org.springframework.security.authentication.BadCredentialsException e) {
+            // Increment failed attempts
             userRepository.findByUsername(loginRequest.getUsername()).ifPresent(user -> {
-                try { auditService.logAction("FAILED_LOGIN", "SYSTEM", user.getId(), "Failed login: " + user.getUsername()); } catch (Exception ignored) {}
+                int attempts = (user.getFailedAttempts() == null ? 0 : user.getFailedAttempts()) + 1;
+                user.setFailedAttempts(attempts);
+                if (attempts >= 5) {
+                    user.setAccountLocked(true);
+                    user.setLockTime(java.time.LocalDateTime.now());
+                }
+                userRepository.save(user);
+                try { auditService.logAction("FAILED_LOGIN", "SYSTEM", user.getId(), "Failed login attempt " + attempts + " for: " + user.getUsername()); } catch (Exception ignored) {}
             });
             throw e;
         }

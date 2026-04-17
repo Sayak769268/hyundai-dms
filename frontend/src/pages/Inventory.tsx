@@ -88,7 +88,8 @@ export default function Inventory() {
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
   const userRoles: string[] = storedUser?.roles ?? [];
   const isAdmin = userRoles.includes('ROLE_ADMIN');
-  const canEdit = !isAdmin;
+  const isEmployee = userRoles.includes('ROLE_EMPLOYEE') && !userRoles.includes('ROLE_DEALER');
+  const canEdit = !isAdmin && !isEmployee; // Only dealers can edit inventory
   const location = useLocation();
 
   // Read URL params on mount (e.g. from dashboard shortcuts)

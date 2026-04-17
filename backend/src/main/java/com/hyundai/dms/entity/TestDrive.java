@@ -2,6 +2,8 @@ package com.hyundai.dms.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -16,23 +18,31 @@ public class TestDrive {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lead_id", nullable = false)
-    private CustomerLead lead;
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "variant_id", nullable = false)
-    private VehicleVariant variant;
+    @JoinColumn(name = "vehicle_id", nullable = false)
+    private Vehicle vehicle;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id", nullable = false)
-    private Employee employee;
+    @Column(name = "dealer_id", nullable = false)
+    private Long dealerId;
 
     @Column(name = "scheduled_date", nullable = false)
-    private LocalDateTime scheduledDate;
+    private LocalDate scheduledDate;
 
-    @Column(length = 50, columnDefinition = "varchar(50) default 'SCHEDULED'")
+    @Column(length = 50)
     private String status;
 
     @Column(columnDefinition = "TEXT")
-    private String feedback;
+    private String notes;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (status == null) status = "SCHEDULED";
+    }
 }

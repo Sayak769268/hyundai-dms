@@ -13,6 +13,7 @@ import Admin from './pages/Admin';
 import Employees from './pages/Employees';
 import Dealers from './pages/Dealers';
 import AuditLogs from './pages/AuditLogs';
+import TestDrives from './pages/TestDrives';
 
 const DashboardLayout = ({ children }: { children?: React.ReactNode }) => (
   <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -44,6 +45,7 @@ function App() {
           <Route path="/dealers" element={<ProtectedRoute allowedRoles={['ROLE_ADMIN']}><DashboardLayout><Dealers /></DashboardLayout></ProtectedRoute>} />
           <Route path="/audit" element={<ProtectedRoute allowedRoles={['ROLE_ADMIN']}><DashboardLayout><AuditLogs /></DashboardLayout></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute allowedRoles={['ROLE_ADMIN']}><DashboardLayout><Admin /></DashboardLayout></ProtectedRoute>} />
+          <Route path="/test-drives" element={<DashboardLayout><TestDrives /></DashboardLayout>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

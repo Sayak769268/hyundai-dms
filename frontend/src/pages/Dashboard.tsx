@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import api from '../lib/api';
 import Admin from './Admin';
+import EmployeeDashboard from './EmployeeDashboard';
 
 interface DashboardStats {
   totalCustomers: number;
@@ -76,6 +77,12 @@ export default function Dashboard() {
 
   if (isAdmin && !isImpersonating) {
     return <Admin />;
+  }
+
+  // Employee gets their own dashboard
+  const isEmployee = storedUser.roles?.includes('ROLE_EMPLOYEE') && !storedUser.roles?.includes('ROLE_DEALER');
+  if (isEmployee) {
+    return <EmployeeDashboard />;
   }
 
   if (loading || !stats) {

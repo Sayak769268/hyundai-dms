@@ -31,6 +31,18 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(org.springframework.security.authentication.DisabledException.class)
+    public ResponseEntity<ErrorResponse> handleDisabledException(org.springframework.security.authentication.DisabledException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.FORBIDDEN.value())
+                .error("Account Disabled")
+                .message("Your account has been deactivated. Please contact admin.")
+                .path(request.getRequestURI())
+                .build();
+        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentialsException(BadCredentialsException ex, HttpServletRequest request) {
         ErrorResponse errorResponse = ErrorResponse.builder()
@@ -47,24 +59,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleLockedException(org.springframework.security.authentication.LockedException ex, HttpServletRequest request) {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.LOCKED.value())
+                .status(423)
                 .error("Account Locked")
-                .message(ex.getMessage())
+                .message("Your account is locked due to multiple failed login attempts. Try again after 30 minutes.")
                 .path(request.getRequestURI())
                 .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.LOCKED);
+        return new ResponseEntity<>(errorResponse, HttpStatus.valueOf(423));
     }
 
     @ExceptionHandler(org.springframework.security.authentication.CredentialsExpiredException.class)
     public ResponseEntity<ErrorResponse> handleCredentialsExpiredException(org.springframework.security.authentication.CredentialsExpiredException ex, HttpServletRequest request) {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.UNAUTHORIZED.value())
+                .status(HttpStatus.FORBIDDEN.value())
                 .error("Account Expired")
-                .message(ex.getMessage())
+                .message("Your account has expired. Please contact admin.")
                 .path(request.getRequestURI())
                 .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
     }
     
     @ExceptionHandler(AccessDeniedException.class)

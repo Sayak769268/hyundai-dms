@@ -37,6 +37,20 @@ public class User {
     @Column(name = "dealer_id")
     private Long dealerId;
 
+    @Column(name = "failed_attempts", columnDefinition = "int default 0")
+    @Builder.Default
+    private Integer failedAttempts = 0;
+
+    @Column(name = "account_locked", columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean accountLocked = false;
+
+    @Column(name = "lock_time")
+    private LocalDateTime lockTime;
+
+    @Column(name = "account_expiry_date")
+    private LocalDateTime accountExpiryDate;
+
     @CreationTimestamp
 
     @Column(name = "created_at", updatable = false)
