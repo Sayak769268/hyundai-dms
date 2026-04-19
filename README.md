@@ -154,8 +154,6 @@ Key capabilities:
 | `Alt + E` | Navigate to Employees |
 | `Esc` | Close any open modal |
 
-> Shortcuts are displayed in the sidebar under the **Keyboard Shortcuts** panel (click to expand).
-> Browser default behaviors are prevented where necessary (e.g. `Ctrl+K` won't open the browser address bar).
 
 ---
 
