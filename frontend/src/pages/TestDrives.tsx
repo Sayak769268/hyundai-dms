@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Car, Plus, X, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import api from '../lib/api';
 import Pagination from '../components/Pagination';
+import SortableHeader from '../components/SortableHeader';
+import type { SortDir } from '../components/SortableHeader';
+import { useGlobalShortcuts } from '../hooks/useKeyboardShortcuts';
 
 interface TestDrive {
   id: number;
@@ -37,16 +41,25 @@ export default function TestDrives() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  // Sorting
+  const [sortField, setSortField] = useState('scheduledDate');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const handleSort = (field: string, dir: SortDir) => { setSortField(field); setSortDir(dir); setPage(0); };
+
+  useGlobalShortcuts({ onCreate: () => openModal() });
+
   const fetchDrives = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/test-drives?page=${page}&size=${pageSize}`);
+      let url = `/test-drives?page=${page}&size=${pageSize}`;
+      if (sortDir) url += `&sort=${sortField},${sortDir}`;
+      const res = await api.get(url);
       setDrives(res.data.content || []);
       setTotalPages(res.data.totalPages || 0);
       setTotalElements(res.data.totalElements || 0);
     } catch { setDrives([]); }
     finally { setLoading(false); }
-  }, [page]);
+  }, [page, sortField, sortDir]);
 
   useEffect(() => { fetchDrives(); }, [fetchDrives]);
 
@@ -111,30 +124,33 @@ export default function TestDrives() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
-        {loading ? (
-          <div className="p-16 text-center text-gray-400">Loading...</div>
-        ) : drives.length === 0 ? (
-          <div className="p-16 text-center">
-            <Car className="h-12 w-12 text-gray-200 mx-auto mb-4" />
-            <p className="text-gray-500 font-medium">No test drives scheduled yet.</p>
-            <p className="text-sm text-gray-400 mt-1">Click "Schedule Test Drive" to get started.</p>
-            <button onClick={openModal} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
-              Schedule Now
-            </button>
-          </div>
-        ) : (
-          <>
-          <table className="min-w-full divide-y divide-gray-100">
-            <thead className="bg-gray-50">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto relative">
+        <table className="min-w-full divide-y divide-gray-100">
+          <thead className="bg-gray-50">
+            <tr>
+              <SortableHeader label="Customer" field="customer.firstName" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+              <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
+              <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vehicle</th>
+              <SortableHeader label="Date" field="scheduledDate" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+              <SortableHeader label="Status" field="status" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+              <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className={`divide-y divide-gray-50 ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+            {loading && drives.length === 0 ? (
               <tr>
-                {['Customer', 'Phone', 'Vehicle', 'Date', 'Status', 'Actions'].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
-                ))}
+                <td colSpan={6} className="p-16 text-center text-gray-400">Loading...</td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {drives.map(d => {
+            ) : drives.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="p-16 text-center">
+                  <Car className="h-12 w-12 text-gray-200 mx-auto mb-4" />
+                  <p className="text-gray-500 font-medium">No test drives scheduled yet.</p>
+                  <p className="text-sm text-gray-400 mt-1">Click "Schedule Test Drive" to get started.</p>
+                </td>
+              </tr>
+            ) : (
+              drives.map(d => {
                 const sc = STATUS_CONFIG[d.status] || STATUS_CONFIG.SCHEDULED;
                 const Icon = sc.icon;
                 return (
@@ -162,17 +178,18 @@ export default function TestDrives() {
                     </td>
                   </tr>
                 );
-              })}
+              })
+            )}
             </tbody>
           </table>
-          <Pagination currentPage={page} totalPages={totalPages} totalElements={totalElements} onPageChange={setPage} pageSize={pageSize} />
-          </>
-        )}
+          {drives.length > 0 && (
+            <Pagination currentPage={page} totalPages={totalPages} totalElements={totalElements} onPageChange={setPage} pageSize={pageSize} />
+          )}
       </div>
 
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+      {isOpen && createPortal(
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4" onClick={() => setIsOpen(false)}>
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center px-6 py-4 border-b flex-shrink-0">
               <h2 className="text-lg font-bold text-gray-900">Schedule Test Drive</h2>
               <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-700"><X className="h-5 w-5" /></button>
@@ -239,7 +256,8 @@ export default function TestDrives() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

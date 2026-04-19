@@ -16,6 +16,6 @@ public class DealerRankDto {
     private String dealerName;
     private String location;
     private boolean isActive;
-    private long totalSales;
+    private Long totalSales;
     private BigDecimal totalRevenue;
 }

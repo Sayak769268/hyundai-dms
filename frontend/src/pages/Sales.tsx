@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -6,6 +7,9 @@ import Select from 'react-select';
 import api from '../lib/api';
 import { Plus, Search, X, Eye, CheckCircle, HandCoins, AlertTriangle, Filter } from 'lucide-react';
 import Pagination from '../components/Pagination';
+import SortableHeader from '../components/SortableHeader';
+import type { SortDir } from '../components/SortableHeader';
+import { useGlobalShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useLocation } from 'react-router-dom';
 
 // ── Status config ──────────────────────────────────────────────
@@ -97,6 +101,14 @@ export default function Sales() {
   const [viewOrder, setViewOrder] = useState<SalesOrder | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Sorting
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const handleSort = (field: string, dir: SortDir) => { setSortField(field); setSortDir(dir); setPage(0); };
+
+  useGlobalShortcuts({ onSearch: () => searchRef.current?.focus(), onCreate: () => { if (!isAdmin) { loadDropdowns(); setIsAddOpen(true); } } });
+
   // Dropdown data options
   const [customerOptions, setCustomerOptions] = useState<any[]>([]);
   const [vehicleOptions, setVehicleOptions] = useState<any[]>([]);
@@ -119,12 +131,13 @@ export default function Sales() {
       if (toDate) url += `&toDate=${toDate}`;
       if (minAmount) url += `&minAmount=${minAmount}`;
       if (maxAmount) url += `&maxAmount=${maxAmount}`;
+      if (sortDir) url += `&sort=${sortField},${sortDir}`;
       const res = await api.get(url);
       setOrders(res.data?.content || []);
       setTotalPages(res.data?.totalPages || 0);
       setTotalElements(res.data?.totalElements || 0);
     } catch { /* Handle */ } finally { setLoading(false); }
-  }, [page, search, statusFilter, fromDate, toDate, minAmount, maxAmount]);
+  }, [page, search, statusFilter, fromDate, toDate, minAmount, maxAmount, sortField, sortDir]);
 
   useEffect(() => {
     fetchOrders();
@@ -258,32 +271,38 @@ export default function Sales() {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
-        {loading ? (
-          <div className="p-16 text-center text-gray-400">Loading orders...</div>
-        ) : orders.length === 0 ? (
-          <div className="p-16 flex justify-center">
-            <div className="text-center">
-              <HandCoins className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">No sales orders found.</p>
-              <p className="text-sm text-gray-400">Start by creating a new order.</p>
-            </div>
-          </div>
-        ) : (
-          <>
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto relative">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                {isAdmin ? 'Dealer / Order' : 'Order ID'}
+              </th>
+              <SortableHeader label="Customer" field="customer.firstName" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Vehicle</th>
+              <SortableHeader label="Amount" field="finalAmount" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+              <SortableHeader label="Date" field="createdAt" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+              <SortableHeader label="Status" field="status" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className={`divide-y divide-gray-100 ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
+            {loading && orders.length === 0 ? (
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {isAdmin ? 'Dealer / Order' : 'Order ID'}
-                </th>
-                {['Customer', 'Vehicle', 'Amount', 'Date', 'Status', 'Actions'].map(h => (
-                  <th key={h} className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
-                ))}
+                <td colSpan={7} className="p-16 text-center text-gray-400">Loading orders...</td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {orders.map(o => {
+            ) : orders.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="p-16 flex justify-center border-b-0 text-center">
+                  <div>
+                    <HandCoins className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500 font-medium">No sales orders found.</p>
+                    <p className="text-sm text-gray-400">Start by creating a new order.</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              orders.map(o => {
                 const badge = STATUS_CONFIG[o.status] || STATUS_CONFIG.PENDING;
                 return (
                   <tr key={o.id} className="hover:bg-gray-50/50 transition">
@@ -319,18 +338,19 @@ export default function Sales() {
                     </td>
                   </tr>
                 );
-              })}
+              })
+            )}
             </tbody>
           </table>
-          <Pagination 
-            currentPage={page}
-            totalPages={totalPages}
-            totalElements={totalElements}
-            onPageChange={setPage}
-            pageSize={pageSize}
-          />
-          </>
-        )}
+          {orders.length > 0 && (
+            <Pagination 
+              currentPage={page}
+              totalPages={totalPages}
+              totalElements={totalElements}
+              onPageChange={setPage}
+              pageSize={pageSize}
+            />
+          )}
       </div>
 
       {/* ── Create Order Modal ───────────────────────────────── */}
@@ -479,15 +499,16 @@ export default function Sales() {
 
 // ── Helpers ─────────────────────────────────────────────────────────
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 flex-shrink-0">
           <h2 className="text-lg font-bold text-gray-900">{title}</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"><X className="h-5 w-5" /></button>
         </div>
         <div className="p-6 overflow-y-auto flex-1">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

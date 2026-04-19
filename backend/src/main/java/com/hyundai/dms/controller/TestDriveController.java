@@ -46,7 +46,7 @@ public class TestDriveController {
     public ResponseEntity<Page<TestDriveDto>> getAll(Pageable pageable) {
         Long dealerId = getCurrentDealerId();
         return ResponseEntity.ok(
-            testDriveRepository.findAllByDealerIdOrderByCreatedAtDesc(dealerId, pageable)
+            testDriveRepository.findAllByDealerId(dealerId, pageable)
                 .map(this::toDto)
         );
     }

@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,6 +7,9 @@ import * as z from 'zod';
 import api from '../lib/api';
 import { Plus, Search, X, Eye, Pencil, Archive, Filter } from 'lucide-react';
 import Pagination from '../components/Pagination';
+import SortableHeader from '../components/SortableHeader';
+import type { SortDir } from '../components/SortableHeader';
+import { useGlobalShortcuts } from '../hooks/useKeyboardShortcuts';
 
 const STATUS_COLORS: Record<string, string> = {
   NEW: 'bg-blue-100 text-blue-700',
@@ -79,6 +83,14 @@ export default function Customers() {
       .catch(() => {});
   }, []);
 
+  // Sorting
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const handleSort = (field: string, dir: SortDir) => { setSortField(field); setSortDir(dir); setPage(0); };
+
+  useGlobalShortcuts({ onSearch: () => searchRef.current?.focus(), onCreate: () => { setEditingCustomer(null); reset({ status: 'NEW' } as any); setIsModalOpen(true); } });
+
   const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<CustomerForm>({
     resolver: zodResolver(customerSchema),
     defaultValues: { status: 'NEW' },
@@ -90,6 +102,7 @@ export default function Customers() {
       let url = `/customers?search=${encodeURIComponent(search)}&page=${page}&size=${pageSize}`;
       if (statusFilter) url += `&status=${statusFilter}`;
       if (employeeFilter) url += `&assignedEmployeeId=${employeeFilter}`;
+      if (sortDir) url += `&sort=${sortField},${sortDir}`;
       
       const res = await api.get(url);
       setCustomers(res.data?.content ?? []);
@@ -100,7 +113,7 @@ export default function Customers() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, employeeFilter, page]);
+  }, [search, statusFilter, employeeFilter, page, sortField, sortDir]);
 
   useEffect(() => {
     const timer = setTimeout(fetchCustomers, 200);
@@ -210,16 +223,18 @@ export default function Customers() {
             <option value="LOST">Lost</option>
           </select>
         </div>
-        <select
-          value={employeeFilter}
-          onChange={e => handleFilterChange(setEmployeeFilter, e.target.value)}
-          className="border border-gray-300 rounded-lg text-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Employees</option>
-          {employees.map(emp => (
-            <option key={emp.id} value={emp.id}>{emp.name}</option>
-          ))}
-        </select>
+        {!isEmployee && (
+          <select
+            value={employeeFilter}
+            onChange={e => handleFilterChange(setEmployeeFilter, e.target.value)}
+            className="border border-gray-300 rounded-lg text-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All Employees</option>
+            {employees.map(emp => (
+              <option key={emp.id} value={emp.id}>{emp.name}</option>
+            ))}
+          </select>
+        )}
         {(search || statusFilter || employeeFilter) && (
           <button onClick={() => { setSearch(''); setStatusFilter(''); setEmployeeFilter(''); setPage(0); }} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 border border-red-200 px-2 py-1.5 rounded-lg">
             <X className="h-3 w-3" /> Clear
@@ -238,9 +253,12 @@ export default function Customers() {
           <table className="min-w-full divide-y divide-gray-100">
             <thead className="bg-gray-50">
               <tr>
-                {['Name', 'Contact', 'Status', 'Assigned To', 'Next Follow-up', 'Actions'].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
-                ))}
+                <SortableHeader label="Name" field="firstName" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
+                <SortableHeader label="Status" field="status" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Assigned To</th>
+                <SortableHeader label="Follow-up" field="nextFollowUpDate" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
@@ -307,9 +325,9 @@ export default function Customers() {
       </div>
 
       {/* Add / Edit Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+      {isModalOpen && createPortal(
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4" onClick={() => setIsModalOpen(false)}>
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center px-6 py-4 border-b flex-shrink-0">
               <h2 className="text-lg font-bold text-gray-800">{editingCustomer ? 'Edit Customer' : 'New Customer'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-700 transition">
@@ -384,12 +402,13 @@ export default function Customers() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Archive Confirmation */}
-      {confirmArchive && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
+      {confirmArchive && createPortal(
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center">
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Archive className="h-6 w-6 text-red-600" />
@@ -403,7 +422,8 @@ export default function Customers() {
               <button onClick={() => handleArchive(confirmArchive)} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg">Archive</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

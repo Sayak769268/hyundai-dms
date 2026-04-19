@@ -13,6 +13,7 @@ import java.util.Optional;
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     Optional<Employee> findByEmployeeCode(String employeeCode);
+    Optional<Employee> findByUserId(Long userId);
     Optional<Employee> findByUserUsername(String username);
     Page<Employee> findAllByDealerId(Long dealerId, Pageable pageable);
     Optional<Employee> findByIdAndDealerId(Long id, Long dealerId);

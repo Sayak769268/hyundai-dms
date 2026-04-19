@@ -64,7 +64,8 @@ public class SalesServiceImpl {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isEmployee = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"));
         if (isEmployee) {
-            Employee employee = employeeRepository.findByUserUsername(auth.getName()).orElse(null);
+            User currentUser = userRepository.findByUsername(auth.getName()).orElse(null);
+            Employee employee = currentUser != null ? employeeRepository.findByUserId(currentUser.getId()).orElse(null) : null;
             if (employee != null) {
                 return salesOrderRepository.findByEmployeeId(employee.getId(), pageable).map(this::mapToDto);
             }
@@ -111,7 +112,8 @@ public class SalesServiceImpl {
         }
 
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        Employee employee = employeeRepository.findByUserUsername(currentUsername).orElse(null);
+        User currentUser = userRepository.findByUsername(currentUsername).orElse(null);
+        Employee employee = currentUser != null ? employeeRepository.findByUserId(currentUser.getId()).orElse(null) : null;
 
         // If dealer user (no employee record), find any active employee in their dealership
         if (employee == null) {

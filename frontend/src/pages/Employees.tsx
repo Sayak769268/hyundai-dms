@@ -1,7 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, UserPlus, Search, Trash2, CheckCircle2, XCircle, UserCheck, UserX } from 'lucide-react';
 import api from '../lib/api';
 import Pagination from '../components/Pagination';
+import ModalPortal from '../components/ModalPortal';
+import SortableHeader from '../components/SortableHeader';
+import type { SortDir } from '../components/SortableHeader';
+import { useGlobalShortcuts } from '../hooks/useKeyboardShortcuts';
 
 interface Employee {
   id: number;
@@ -35,12 +39,29 @@ export default function Employees() {
     role: 'ROLE_EMPLOYEE'
   });
 
+  // Sorting — default newest first
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const handleSort = (field: string, dir: SortDir) => {
+    setSortField(field);
+    setSortDir(dir);
+    setPage(0);
+  };
+
+  // Keyboard shortcuts
+  useGlobalShortcuts({
+    onSearch: () => searchRef.current?.focus(),
+    onCreate: () => setIsModalOpen(true),
+  });
+
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-      // We explicitly request ROLE_EMPLOYEE to exclude admins and dealers
-      const res = await api.get(`/users?role=ROLE_EMPLOYEE&search=${encodeURIComponent(searchTerm)}&page=${page}&size=${pageSize}`);
+      const sortParam = sortDir ? `&sort=${sortField},${sortDir}` : '';
+      const res = await api.get(`/users?role=ROLE_EMPLOYEE&search=${encodeURIComponent(searchTerm)}&page=${page}&size=${pageSize}${sortParam}`);
       setEmployees(res.data.content || []);
       setTotalPages(res.data.totalPages || 0);
       setTotalElements(res.data.totalElements || 0);
@@ -49,7 +70,7 @@ export default function Employees() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, page]);
+  }, [searchTerm, page, sortField, sortDir]);
 
   useEffect(() => {
     const timer = setTimeout(fetchEmployees, 200);
@@ -121,8 +142,9 @@ export default function Employees() {
           <input
             type="text"
             placeholder="Search by name, email, or username..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
             value={searchTerm}
+            ref={searchRef}
             onChange={(e) => handleFilterChange(setSearchTerm, e.target.value)}
           />
         </div>
@@ -157,11 +179,11 @@ export default function Employees() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase font-bold text-gray-400 tracking-widest">
-                  <th className="px-6 py-4">Employee Identity</th>
-                  <th className="px-6 py-4">Current Status</th>
-                  <th className="px-6 py-4">Onboarding Date</th>
-                  <th className="px-6 py-4 text-right">Administrative Actions</th>
+                <tr className="bg-gray-50/50 border-b border-gray-100">
+                  <SortableHeader label="Employee" field="fullName" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Status" field="isActive" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Onboarded" field="createdAt" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+                  <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -228,8 +250,8 @@ export default function Employees() {
 
       {/* Add Employee Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-all">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300">
+        <ModalPortal onClose={() => setIsModalOpen(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-5 bg-gray-50 border-b border-gray-100 flex justify-between items-center text-black flex-shrink-0">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Add Staff Member</h2>
@@ -242,7 +264,7 @@ export default function Employees() {
             
             <form onSubmit={handleCreateEmployee} className="p-6 space-y-4 text-black overflow-y-auto flex-1">
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Display Name</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Display Name *</label>
                 <input
                   required
                   type="text"
@@ -255,7 +277,7 @@ export default function Employees() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Username</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Username *</label>
                   <input
                     required
                     type="text"
@@ -266,7 +288,7 @@ export default function Employees() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Password</label>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Password *</label>
                   <input
                     required
                     type="password"
@@ -279,7 +301,7 @@ export default function Employees() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Work Email</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Work Email *</label>
                 <input
                   required
                   type="email"
@@ -307,7 +329,7 @@ export default function Employees() {
               </div>
             </form>
           </div>
-        </div>
+        </ModalPortal>
       )}
     </div>
   );

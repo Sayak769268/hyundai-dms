@@ -3,6 +3,7 @@ package com.hyundai.dms.dto;
 import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Data
 @Builder
@@ -16,6 +17,7 @@ public class TestDriveDto {
     private Long vehicleId;
     private String vehicleName;
     private Long dealerId;
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate scheduledDate;
     private String status;
     private String notes;

@@ -8,5 +8,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TestDriveRepository extends JpaRepository<TestDrive, Long> {
-    Page<TestDrive> findAllByDealerIdOrderByCreatedAtDesc(Long dealerId, Pageable pageable);
+    Page<TestDrive> findAllByDealerId(Long dealerId, Pageable pageable);
 }

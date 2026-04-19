@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Building2, Users, Receipt, TrendingUp, TrendingDown, 
-  AlertTriangle, Navigation, Crown, Database, CheckCircle2, CheckCircle
+  AlertTriangle, Navigation, Crown, Database, CheckCircle2
 } from 'lucide-react';
 import api from '../lib/api';
 
@@ -45,7 +45,7 @@ export default function Admin() {
   };
 
   const handleDealerClick = (dealerId: number) => {
-    navigate(`/dashboard?dealerId=${dealerId}`);
+    navigate(`/?dealerId=${dealerId}`);
   };
 
   if (loading || !data) {
@@ -128,17 +128,17 @@ export default function Admin() {
               <div className="flex-1 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl shadow-sm border border-yellow-200 p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Crown className="h-6 w-6 text-yellow-500" />
-                  <h2 className="text-lg font-bold text-yellow-900">Top Performing Dealer</h2>
+                  <h2 className="text-lg font-bold text-yellow-900 tracking-tight">Top Performing Dealer</h2>
                 </div>
                 <h3 className="text-2xl font-extrabold text-gray-900 mb-2">{data.topDealer.dealerName}</h3>
-                <div className="flex justify-between items-end">
+                <div className="flex justify-between items-end border-t border-yellow-200/50 pt-4">
                    <div>
-                     <p className="text-xs text-gray-500 font-bold uppercase">Revenue</p>
+                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Revenue</p>
                      <p className="text-lg font-bold text-green-600">₹{(data.topDealer.totalRevenue / 100000).toFixed(2)}L</p>
                    </div>
                    <div className="text-right">
-                     <p className="text-xs text-gray-500 font-bold uppercase">Sales</p>
-                     <p className="text-lg font-bold text-blue-600">{data.topDealer.totalSales} Units</p>
+                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Units Sold</p>
+                     <p className="text-lg font-bold text-blue-600">{data.topDealer.totalSales}</p>
                    </div>
                 </div>
               </div>
@@ -149,17 +149,17 @@ export default function Admin() {
               <div className="flex-1 bg-gradient-to-br from-red-50 to-rose-50 rounded-2xl shadow-sm border border-red-200 p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingDown className="h-6 w-6 text-red-500" />
-                  <h2 className="text-lg font-bold text-red-900">Needs Improvement</h2>
+                  <h2 className="text-lg font-bold text-red-900 tracking-tight">Needs Improvement</h2>
                 </div>
                 <h3 className="text-2xl font-extrabold text-gray-900 mb-2">{data.worstDealer.dealerName}</h3>
-                <div className="flex justify-between items-end">
+                <div className="flex justify-between items-end border-t border-red-200/50 pt-4">
                    <div>
-                     <p className="text-xs text-gray-500 font-bold uppercase">Revenue</p>
+                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Revenue</p>
                      <p className="text-lg font-bold text-red-600">₹{(data.worstDealer.totalRevenue / 100000).toFixed(2)}L</p>
                    </div>
                    <div className="text-right">
-                     <p className="text-xs text-gray-500 font-bold uppercase">Sales</p>
-                     <p className="text-lg font-bold text-gray-700">{data.worstDealer.totalSales} Units</p>
+                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Units Sold</p>
+                     <p className="text-lg font-bold text-gray-700">{data.worstDealer.totalSales}</p>
                    </div>
                 </div>
               </div>
@@ -171,8 +171,8 @@ export default function Admin() {
                 <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-blue-500" /> Dealership Leaderboard
                 </h2>
-                <div className="text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
-                   Click any dealer to view dashboard
+                <div className="text-[10px] font-bold text-gray-400 bg-gray-100 px-3 py-1 rounded-full uppercase tracking-widest">
+                   Live Rankings
                 </div>
              </div>
              <div className="overflow-x-auto">
@@ -195,24 +195,24 @@ export default function Admin() {
                      >
                        <td className="px-6 py-4">
                          {idx === 0 ? (
-                            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-yellow-100 text-yellow-700 font-extrabold text-sm">1</span>
+                            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-yellow-100 text-yellow-700 font-extrabold text-sm shadow-sm ring-1 ring-yellow-200">1</span>
                          ) : idx === 1 ? (
-                            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gray-200 text-gray-700 font-extrabold text-sm">2</span>
+                            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-slate-100 text-slate-700 font-extrabold text-sm shadow-sm ring-1 ring-slate-200">2</span>
                          ) : idx === 2 ? (
-                            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-orange-100 text-orange-800 font-extrabold text-sm">3</span>
+                            <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-orange-50 text-orange-800 font-extrabold text-sm shadow-sm ring-1 ring-orange-100">3</span>
                          ) : (
                             <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gray-50 text-gray-500 font-bold text-sm">{idx + 1}</span>
                          )}
                        </td>
-                       <td className="px-6 py-4 font-bold text-gray-900">{dealer.dealerName}</td>
+                       <td className="px-6 py-4 font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{dealer.dealerName}</td>
                        <td className="px-6 py-4 text-gray-600 font-medium">{dealer.totalSales} Units</td>
                        <td className="px-6 py-4 font-bold text-green-600">₹{(dealer.totalRevenue / 100000).toLocaleString('en-IN')}L</td>
                        <td className="px-6 py-4">
                          <button
                            onClick={(e) => { e.stopPropagation(); handleDealerClick(dealer.dealerId); }}
-                           className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold text-sm bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                           className="flex items-center gap-1.5 text-blue-600 border border-blue-100 font-bold text-xs bg-blue-50 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-xl transition-all shadow-sm"
                          >
-                           View Data <Navigation className="h-3.5 w-3.5" />
+                           View Data <Navigation className="h-3 w-3" />
                          </button>
                        </td>
                      </tr>
@@ -237,14 +237,29 @@ export default function Admin() {
                  <p className="text-xs text-gray-400">No critical alerts to display.</p>
                </div>
             ) : (
-               <div className="space-y-3">
-                 {data.globalAlerts.map((alert, i) => (
-                   <div key={i} className="flex gap-3 p-4 rounded-xl bg-red-50 border border-red-100">
-                     <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" />
-                     <p className="text-sm text-red-900 font-medium leading-relaxed">{alert}</p>
-                   </div>
-                 ))}
-               </div>
+                <div className="space-y-4">
+                  {data.globalAlerts.map((alert, i) => {
+                    const [summary, details] = alert.split('|');
+                    return (
+                      <div key={i} className="flex flex-col gap-3 p-4 rounded-xl bg-red-50 border border-red-100 shadow-sm border-l-4 border-l-red-500">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                          <p className="text-sm text-red-900 font-bold">{summary}</p>
+                        </div>
+                        {details && (
+                          <div className="pl-7 space-y-1">
+                            {details.split(', ').map((item, idx) => (
+                              <div key={idx} className="text-xs text-red-700 flex items-center gap-1.5">
+                                <span className="h-1 w-1 bg-red-400 rounded-full" />
+                                {item}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
             )}
           </div>
         </div>

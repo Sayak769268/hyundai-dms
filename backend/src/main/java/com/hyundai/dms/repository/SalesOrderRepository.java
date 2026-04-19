@@ -79,6 +79,11 @@ public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
     @Query("SELECT SUM(s.finalAmount) FROM SalesOrder s WHERE s.dealerId = :dealerId AND s.createdAt BETWEEN :start AND :end AND s.status <> 'CANCELLED'")
     BigDecimal sumRevenueByDealerIdAndCreatedAtBetween(@Param("dealerId") Long dealerId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
+    long countByDealerIdAndStatusNot(Long dealerId, String status);
+
+    @Query("SELECT SUM(s.finalAmount) FROM SalesOrder s WHERE s.dealerId = :dealerId AND s.status <> 'CANCELLED'")
+    BigDecimal sumRevenueByDealerId(@Param("dealerId") Long dealerId);
+
     long countByDealerIdAndStatus(Long dealerId, String status);
 
     @Query("SELECT s.vehicle.modelName, COUNT(s) as cnt FROM SalesOrder s WHERE s.dealerId = :dealerId GROUP BY s.vehicle.modelName ORDER BY cnt DESC")

@@ -9,6 +9,8 @@ import com.hyundai.dms.repository.SalesOrderRepository;
 import com.hyundai.dms.repository.UserRepository;
 import com.hyundai.dms.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,8 +44,8 @@ public class AdminServiceImpl {
         List<DealerRankDto> dealerRankings = new ArrayList<>();
 
         for (Dealer dealer : dealers) {
-            long dealerSales = salesOrderRepository.countByDealerIdAndCreatedAtBetween(dealer.getId(), firstOfThisMonth, now);
-            BigDecimal dealerRev = salesOrderRepository.sumRevenueByDealerIdAndCreatedAtBetween(dealer.getId(), firstOfThisMonth, now);
+            long dealerSalesAllTime = salesOrderRepository.countByDealerIdAndStatusNot(dealer.getId(), "CANCELLED");
+            BigDecimal dealerRev = salesOrderRepository.sumRevenueByDealerId(dealer.getId());
             if (dealerRev == null) dealerRev = BigDecimal.ZERO;
 
             dealerRankings.add(DealerRankDto.builder()
@@ -51,7 +53,7 @@ public class AdminServiceImpl {
                     .dealerName(dealer.getName())
                     .location(dealer.getAddress() != null ? dealer.getAddress() : "Unknown Location")
                     .isActive(dealer.getIsActive() == null || dealer.getIsActive())
-                    .totalSales(dealerSales)
+                    .totalSales(dealerSalesAllTime)
                     .totalRevenue(dealerRev)
                     .build());
         }
@@ -79,7 +81,7 @@ public class AdminServiceImpl {
             String vehicleList = vehicles.stream()
                     .map(v -> v.getModelName() + " (" + v.getStock() + " left)")
                     .collect(Collectors.joining(", "));
-            alerts.add(dName + " — " + vehicles.size() + " low stock: " + vehicleList);
+            alerts.add(dName + " — " + vehicles.size() + " units low stock|" + vehicleList);
         }
 
         return AdminDashboardDto.builder()
@@ -92,6 +94,23 @@ public class AdminServiceImpl {
                 .worstDealer(worstDealer)
                 .globalAlerts(alerts)
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<DealerRankDto> searchDealers(
+            String name, Boolean status, Long minSales, Long maxSales, 
+            java.math.BigDecimal minRevenue, java.math.BigDecimal maxRevenue, 
+            Pageable pageable) {
+        
+        try (java.io.PrintWriter out = new java.io.PrintWriter(new java.io.FileWriter("search_debug.log", true))) {
+            out.println("--- SEARCH REQUEST @ " + java.time.LocalDateTime.now() + " ---");
+            out.println("name=" + name + ", status=" + status + ", minS=" + minSales + ", maxS=" + maxSales + 
+                        ", minR=" + minRevenue + ", maxR=" + maxRevenue);
+            out.flush();
+        } catch (java.io.IOException e) {}
+        
+        return dealerRepository.searchDealers(
+                name, status, minSales, maxSales, minRevenue, maxRevenue, pageable);
     }
 
     @Transactional

@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -6,6 +7,9 @@ import Select from 'react-select';
 import api from '../lib/api';
 import { Plus, Search, X, Pencil, Trash2, PackagePlus, Filter, AlertTriangle } from 'lucide-react';
 import Pagination from '../components/Pagination';
+import SortableHeader from '../components/SortableHeader';
+import type { SortDir } from '../components/SortableHeader';
+import { useGlobalShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useLocation } from 'react-router-dom';
 
 // ── Status config ──────────────────────────────────────────────
@@ -79,6 +83,14 @@ export default function Inventory() {
   const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
   const [stockError, setStockError]     = useState('');
 
+  // Sorting
+  const [sortField, setSortField] = useState('updatedAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const handleSort = (field: string, dir: SortDir) => { setSortField(field); setSortDir(dir); setPage(0); };
+
+  useGlobalShortcuts({ onSearch: () => searchRef.current?.focus(), onCreate: () => { if (canEdit) setIsAddOpen(true); } });
+
   // ── Model / Variant options ────────────────────────────────
   const [modelOptions, setModelOptions]     = useState<Option[]>([]);
   const [variantOptions, setVariantOptions] = useState<Option[]>([]);
@@ -132,6 +144,7 @@ export default function Inventory() {
       if (minPrice) url += `&minPrice=${minPrice}`;
       if (maxPrice) url += `&maxPrice=${maxPrice}`;
       if (yearFilter) url += `&year=${yearFilter}`;
+      if (sortDir) url += `&sort=${sortField},${sortDir}`;
       
       const res = await api.get(url);
       setVehicles(res.data?.content ?? []);
@@ -139,7 +152,7 @@ export default function Inventory() {
       setTotalElements(res.data?.totalElements ?? 0);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, [search, statusFilter, minPrice, maxPrice, yearFilter, page]);
+  }, [search, statusFilter, minPrice, maxPrice, yearFilter, page, sortField, sortDir]);
 
   useEffect(() => {
     const t = setTimeout(fetchVehicles, 200);
@@ -316,9 +329,13 @@ export default function Inventory() {
           <table className="min-w-full divide-y divide-gray-100">
             <thead className="bg-gray-50">
               <tr>
-                {['Model', 'Variant', 'Year', 'Price (₹)', 'Stock', 'Status', 'Actions'].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
-                ))}
+                <SortableHeader label="Model" field="modelName" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Variant</th>
+                <SortableHeader label="Year" field="year" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+                <SortableHeader label="Price (₹)" field="basePrice" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+                <SortableHeader label="Stock" field="stock" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
@@ -520,8 +537,8 @@ export default function Inventory() {
       )}
 
       {/* ── Delete Confirm ─────────────────────────────────── */}
-      {deleteTarget && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
+      {deleteTarget && createPortal(
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full text-center">
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Trash2 className="h-6 w-6 text-red-600" />
@@ -535,7 +552,8 @@ export default function Inventory() {
               <button onClick={onDelete} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg">Remove</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -543,16 +561,17 @@ export default function Inventory() {
 
 // ── Helpers ────────────────────────────────────────────────────
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 z-[9999] flex justify-center items-center p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center px-6 py-4 border-b flex-shrink-0">
           <h2 className="text-lg font-bold text-gray-800">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition"><X className="h-5 w-5" /></button>
         </div>
         <div className="p-6 overflow-y-auto flex-1">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

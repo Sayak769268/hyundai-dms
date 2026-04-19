@@ -102,7 +102,7 @@ export default function Register() {
             <input type="hidden" {...register('role')} value="ROLE_DEALER" defaultValue="ROLE_DEALER" />
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name *</label>
               <div className="relative">
                 <UserCircle className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input {...register('fullName')} placeholder="Your full name"
@@ -126,7 +126,7 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Username</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Username *</label>
               <div className="relative">
                 <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -140,7 +140,7 @@ export default function Register() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Password *</label>
               <div className="relative">
                 <LockIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input

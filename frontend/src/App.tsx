@@ -14,12 +14,15 @@ import Employees from './pages/Employees';
 import Dealers from './pages/Dealers';
 import AuditLogs from './pages/AuditLogs';
 import TestDrives from './pages/TestDrives';
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal';
 
 const DashboardLayout = ({ children }: { children?: React.ReactNode }) => (
   <div className="flex h-screen bg-gray-50 overflow-hidden">
     <Sidebar />
-    <main className="flex-1 p-8 overflow-y-auto overflow-x-hidden">
-      {children}
+    <main className="flex-1 overflow-y-auto bg-gray-50 w-full">
+      <div className="p-4 pt-14 lg:p-8 lg:pt-8">
+        {children}
+      </div>
     </main>
   </div>
 );
@@ -29,6 +32,7 @@ const Unauthorized = () => <h1 className="text-red-500 text-center m-8 text-2xl 
 function App() {
   return (
     <BrowserRouter>
+      <KeyboardShortcutsModal />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

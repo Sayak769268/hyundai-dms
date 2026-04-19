@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { ShieldAlert, Clock, FileText, Search } from 'lucide-react';
 import api from '../lib/api';
 import Select from 'react-select';
 import Pagination from '../components/Pagination';
+import SortableHeader from '../components/SortableHeader';
+import type { SortDir } from '../components/SortableHeader';
+import { useGlobalShortcuts } from '../hooks/useKeyboardShortcuts';
 
 interface AuditLog {
   id: number;
@@ -47,16 +50,41 @@ export default function AuditLogs() {
   const [actionType, setActionType] = useState<string>('');
   const [search, setSearch] = useState<string>('');
 
+  // Sorting
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const handleSort = (field: string, dir: SortDir) => { setSortField(field); setSortDir(dir); setPage(0); };
+
+  useGlobalShortcuts({ onSearch: () => searchRef.current?.focus() });
+
   useEffect(() => {
     loadDealers();
   }, []);
 
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      let url = `/audit?page=${page}&size=${pageSize}`;
+      if (selectedDealer) url += `&dealerId=${selectedDealer.value}`;
+      if (actionType) url += `&actionType=${actionType}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+      if (sortDir) url += `&sort=${sortField},${sortDir}`;
+      const res = await api.get(url);
+      setLogs(res.data.content || []);
+      setTotalPages(res.data.totalPages || 0);
+      setTotalElements(res.data.totalElements || 0);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedDealer, actionType, search, page, sortField, sortDir]);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchLogs();
-    }, 200);
+    const timer = setTimeout(fetchLogs, 200);
     return () => clearTimeout(timer);
-  }, [selectedDealer, actionType, search, page]);
+  }, [fetchLogs]);
 
   const loadDealers = async () => {
     try {
@@ -67,25 +95,6 @@ export default function AuditLogs() {
         label: d.dealerName
       })));
     } catch { }
-  };
-
-  const fetchLogs = async () => {
-    setLoading(true);
-    try {
-      let url = `/audit?page=${page}&size=${pageSize}`;
-      if (selectedDealer) url += `&dealerId=${selectedDealer.value}`;
-      if (actionType) url += `&actionType=${actionType}`;
-      if (search) url += `&search=${encodeURIComponent(search)}`;
-      
-      const res = await api.get(url);
-      setLogs(res.data.content || []);
-      setTotalPages(res.data.totalPages || 0);
-      setTotalElements(res.data.totalElements || 0);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleFilterChange = (setter: any, val: any) => {
@@ -167,7 +176,7 @@ export default function AuditLogs() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date & Time</th>
+                    <SortableHeader label="Date & Time" field="createdAt" currentSort={sortField} currentDir={sortDir} onSort={handleSort} />
                     <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Entity</th>

@@ -10,13 +10,15 @@ A full-stack, multi-tenant web application built for Hyundai dealerships to mana
 - [Tech Stack](#tech-stack)
 - [Architecture](#architecture)
 - [Features](#features)
+- [Keyboard Shortcuts](#keyboard-shortcuts)
+- [Table Sorting](#table-sorting)
+- [Responsive Design](#responsive-design)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
 - [Default Credentials](#default-credentials)
 - [API Reference](#api-reference)
 - [Role-Based Access Control](#role-based-access-control)
 - [Database Schema](#database-schema)
-- [Screenshots](#screenshots)
 
 ---
 
@@ -125,6 +127,7 @@ Key capabilities:
 
 ### Cross-cutting
 - Server-side search + multi-column filtering on all list pages
+- **Server-side sorting** on all table columns (click header to toggle asc/desc)
 - Pagination on all data tables (configurable page size)
 - Date range, price range, status filters on sales
 - Employee filter on customers, year/price filter on inventory
@@ -132,6 +135,70 @@ Key capabilities:
 - Full audit trail (login, create, update, status changes)
 - Account lock after failed login attempts
 - Stale JWT auto-redirect to login
+- **Keyboard shortcuts** for power-user navigation
+- **Responsive design** — works on mobile, tablet, and desktop
+- New entities appear at the top of tables (default sort: newest first)
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl + K` | Focus the search bar on the current page |
+| `Ctrl + N` | Create new entity (employee, customer, sale, etc.) |
+| `Alt + D` | Navigate to Dashboard |
+| `Alt + S` | Navigate to Sales |
+| `Alt + I` | Navigate to Inventory |
+| `Alt + C` | Navigate to Customers |
+| `Alt + E` | Navigate to Employees |
+| `Esc` | Close any open modal |
+
+> Shortcuts are displayed in the sidebar under the **Keyboard Shortcuts** panel (click to expand).
+> Browser default behaviors are prevented where necessary (e.g. `Ctrl+K` won't open the browser address bar).
+
+---
+
+## Table Sorting
+
+All data tables support **server-side sorting**:
+
+1. Click any sortable column header to sort **ascending**
+2. Click again to sort **descending**
+3. Click once more to **clear** the sort
+
+Sortable columns show arrow indicators:
+- ↕ (neutral) — no sort active
+- ↑ (blue) — ascending
+- ↓ (blue) — descending
+
+Sort parameters are passed to the backend via Spring's `Pageable` interface:
+```
+GET /api/customers?page=0&size=15&sort=firstName,asc
+GET /api/sales?page=0&size=15&sort=finalAmount,desc
+GET /api/admin/dealers?page=0&size=10&sort=totalRevenue,desc
+```
+
+**Default sort:** All tables default to `createdAt,desc` (newest first), so newly created entities always appear at the top.
+
+---
+
+## Responsive Design
+
+The UI adapts to all screen sizes:
+
+| Breakpoint | Behavior |
+|---|---|
+| Desktop (≥1024px) | Full sidebar visible, spacious layout (unchanged) |
+| Tablet (768–1023px) | Sidebar collapses to hamburger menu, tables scroll horizontally |
+| Mobile (<768px) | Hamburger menu, compact padding, stacked filters, horizontal table scroll |
+
+Key responsive features:
+- **Sidebar** collapses into a slide-over panel with hamburger button on mobile/tablet
+- **Tables** are horizontally scrollable (`overflow-x-auto`) on small screens
+- **Filter bars** stack vertically on narrow viewports
+- **Page headers** use responsive flex layouts
+- **Desktop view is completely unchanged** — no visual differences on large screens
 
 ---
 
@@ -155,7 +222,8 @@ hyundai-dms/
 ├── frontend/
 │   └── src/
 │       ├── pages/               # Route-level components
-│       ├── components/          # Shared components (Sidebar, Pagination)
+│       ├── components/          # Shared components (Sidebar, Pagination, SortableHeader, ModalPortal)
+│       ├── hooks/               # Custom React hooks (useKeyboardShortcuts)
 │       └── lib/
 │           └── api.ts           # Axios instance with JWT interceptor
 └── database/

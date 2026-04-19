@@ -1,0 +1,10 @@
+﻿[
+    {
+        "name":  "Prime Hyundai South",
+        "id":  1
+    },
+    {
+        "name":  "Kiran Motors",
+        "id":  2
+    }
+]

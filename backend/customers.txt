@@ -1,0 +1,15 @@
+﻿Field	Type	Null	Key	Default	Extra
+id	bigint	NO	PRI	NULL	auto_increment
+first_name	varchar(100)	NO		NULL	
+last_name	varchar(100)	NO		NULL	
+email	varchar(150)	YES	UNI	NULL	
+phone	varchar(20)	NO		NULL	
+address	text	YES		NULL	
+dealer_id	bigint	NO	MUL	NULL	
+created_at	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED
+updated_at	timestamp	YES		CURRENT_TIMESTAMP	DEFAULT_GENERATED on update CURRENT_TIMESTAMP
+assigned_employee_id	bigint	YES		NULL	
+is_active	bit(1)	YES		NULL	
+next_follow_up_date	date	YES		NULL	
+notes	text	YES		NULL	
+status	enum('NEW','INTERESTED','BOOKED','LOST')	YES		NULL	
