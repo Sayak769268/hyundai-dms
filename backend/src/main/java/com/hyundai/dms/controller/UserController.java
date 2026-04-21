@@ -4,6 +4,7 @@ import com.hyundai.dms.dto.UserDto;
 import com.hyundai.dms.repository.UserRepository;
 import com.hyundai.dms.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.hyundai.dms.entity.User;
 import com.hyundai.dms.exception.ResourceNotFoundException;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor

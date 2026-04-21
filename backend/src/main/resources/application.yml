@@ -44,3 +44,23 @@ springdoc:
     operationsSorter: method
     tagsSorter: alpha
   default-produces-media-type: application/json
+
+# Application-level config (access via @Value or @ConfigurationProperties)
+app:
+  name: Hyundai DMS
+  version: 1.0.0
+  security:
+    max-failed-attempts: 5
+    lock-duration-minutes: 30
+  pagination:
+    default-page-size: 15
+    max-page-size: 100
+  stock:
+    low-stock-threshold: 3
+
+logging:
+  config: classpath:logback-spring.xml
+  level:
+    com.hyundai.dms: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN

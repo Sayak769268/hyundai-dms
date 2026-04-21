@@ -458,7 +458,7 @@ export default function Sales() {
 
             {/* Order Status Flow Pipeline */}
             <div className="pt-4 border-t border-gray-100">
-              <h4 className="text-sm font-bold text-gray-800 mb-3">{isEmployeeRole ? 'Order Status' : 'Update Progress'}</h4>
+              <h4 className="text-sm font-bold text-gray-800 mb-3">{isAdmin || isEmployeeRole ? 'Order Status' : 'Update Progress'}</h4>
               {viewOrder.status === 'CANCELLED' ? (
                 <div className="bg-red-50 text-red-800 p-4 rounded-lg text-sm font-medium text-center border border-red-200">
                   This order was permanently cancelled and stock has been released.
@@ -466,6 +466,11 @@ export default function Sales() {
               ) : viewOrder.status === 'INVOICED' ? (
                 <div className="bg-green-50 text-green-800 p-4 rounded-lg text-sm font-medium text-center flex items-center justify-center gap-2 border border-green-200">
                   <CheckCircle className="h-5 w-5" /> Order Successfully Completed!
+                </div>
+              ) : isAdmin ? (
+                <div className="bg-gray-50 text-gray-600 p-4 rounded-lg text-sm font-medium text-center border border-gray-200">
+                  Current status: <span className="font-bold">{STATUS_CONFIG[viewOrder.status]?.label || viewOrder.status}</span>
+                  <p className="text-xs text-gray-400 mt-1">Admins have view-only access to sales orders.</p>
                 </div>
               ) : isEmployeeRole ? (
                 <div className="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm font-medium text-center border border-blue-200">

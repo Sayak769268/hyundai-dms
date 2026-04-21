@@ -5,11 +5,13 @@ import com.hyundai.dms.entity.User;
 import com.hyundai.dms.repository.AuditLogRepository;
 import com.hyundai.dms.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuditService {
@@ -26,8 +28,8 @@ public class AuditService {
                 username = auth.getName();
             }
             User user = userRepository.findByUsername(username).orElse(null);
-            
-            AuditLog log = AuditLog.builder()
+
+            AuditLog auditLog = AuditLog.builder()
                 .user(user)
                 .action(action)
                 .entityType(entityType)
@@ -35,11 +37,12 @@ public class AuditService {
                 .description(description)
                 .createdAt(LocalDateTime.now())
                 .build();
-                
-            auditLogRepository.save(log);
+
+            auditLogRepository.save(auditLog);
+            log.debug("Audit logged: action={}, entity={}, id={}, user={}", action, entityType, entityId, username);
         } catch (Exception e) {
-            // Don't let audit logging break the main transaction if it fails
-            System.err.println("Failed to save audit log: " + e.getMessage());
+            // Audit failure must never break the main transaction
+            log.error("Failed to save audit log: action={}, entity={}, id={} — {}", action, entityType, entityId, e.getMessage());
         }
     }
 }

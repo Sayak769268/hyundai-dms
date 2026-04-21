@@ -1,22 +1,22 @@
 package com.hyundai.dms.repository;
 
 import com.hyundai.dms.entity.SalesOrder;
+import com.querydsl.core.types.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
-public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
+public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long>,
+        QuerydslPredicateExecutor<SalesOrder> {
 
     // Find if same customer has booked same vehicle and order is active (not cancelled)
     boolean existsByCustomerIdAndVehicleIdAndStatusNot(Long customerId, Long vehicleId, String status);

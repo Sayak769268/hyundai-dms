@@ -1,17 +1,20 @@
 package com.hyundai.dms.repository;
 
 import com.hyundai.dms.entity.Customer;
+import com.querydsl.core.types.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public interface CustomerRepository extends JpaRepository<Customer, Long> {
+public interface CustomerRepository extends JpaRepository<Customer, Long>,
+        QuerydslPredicateExecutor<Customer> {
     Optional<Customer> findByEmail(String email);
 
     long countByIsActiveTrueAndDealerId(Long dealerId);

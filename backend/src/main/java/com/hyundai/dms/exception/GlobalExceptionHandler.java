@@ -21,6 +21,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex, HttpServletRequest request) {
+        log.warn("Resource not found: {} — path={}", ex.getMessage(), request.getRequestURI());
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.NOT_FOUND.value())
@@ -33,6 +34,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(org.springframework.security.authentication.DisabledException.class)
     public ResponseEntity<ErrorResponse> handleDisabledException(org.springframework.security.authentication.DisabledException ex, HttpServletRequest request) {
+        log.warn("Account disabled: {} — path={}", ex.getMessage(), request.getRequestURI());
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.FORBIDDEN.value())
@@ -45,6 +47,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentialsException(BadCredentialsException ex, HttpServletRequest request) {
+        log.warn("Bad credentials attempt — path={}", request.getRequestURI());
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNAUTHORIZED.value())
@@ -57,6 +60,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(org.springframework.security.authentication.LockedException.class)
     public ResponseEntity<ErrorResponse> handleLockedException(org.springframework.security.authentication.LockedException ex, HttpServletRequest request) {
+        log.warn("Account locked: {} — path={}", ex.getMessage(), request.getRequestURI());
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(423)
@@ -69,6 +73,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(org.springframework.security.authentication.CredentialsExpiredException.class)
     public ResponseEntity<ErrorResponse> handleCredentialsExpiredException(org.springframework.security.authentication.CredentialsExpiredException ex, HttpServletRequest request) {
+        log.warn("Credentials expired: {} — path={}", ex.getMessage(), request.getRequestURI());
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.FORBIDDEN.value())
@@ -81,6 +86,7 @@ public class GlobalExceptionHandler {
     
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Access denied: {} — path={}", ex.getMessage(), request.getRequestURI());
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.FORBIDDEN.value())
@@ -99,6 +105,7 @@ public class GlobalExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
+        log.warn("Validation failed — path={}, errors={}", request.getRequestURI(), errors);
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
@@ -113,6 +120,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex, HttpServletRequest request) {
+        log.warn("Illegal argument: {} — path={}", ex.getMessage(), request.getRequestURI());
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
@@ -132,6 +140,7 @@ public class GlobalExceptionHandler {
         } else if (cause != null && cause.contains("Duplicate")) {
             msg = "A duplicate entry already exists.";
         }
+        log.error("Data integrity violation — path={}, cause={}", request.getRequestURI(), cause);
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())

@@ -8,6 +8,7 @@ import com.hyundai.dms.exception.ResourceNotFoundException;
 import com.hyundai.dms.repository.CustomerRepository;
 import com.hyundai.dms.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -16,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CustomerServiceImpl {
@@ -52,18 +54,23 @@ public class CustomerServiceImpl {
             try { status = Customer.CustomerStatus.valueOf(statusStr.toUpperCase()); }
             catch (IllegalArgumentException ignored) {}
         }
+        String s = (search == null || search.isBlank()) ? null : search;
+
         if (isAdmin()) {
-            return customerRepository.findAllActiveWithSearch(search, status, pageable).map(this::mapToDto);
+            return customerRepository.findAllActiveWithSearch(s, status, pageable).map(this::mapToDto);
         }
+
         Long dealerId = getCurrentDealerId();
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isEmployee = auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_EMPLOYEE"));
+                .anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"));
+
         if (isEmployee && !auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_DEALER"))) {
             User currentUser = getCurrentUser();
-            return customerRepository.findActiveByAssignedEmployee(dealerId, currentUser.getId(), search, status, pageable).map(this::mapToDto);
+            return customerRepository.findActiveByAssignedEmployee(dealerId, currentUser.getId(), s, status, pageable).map(this::mapToDto);
         }
-        return customerRepository.findActiveWithSearch(dealerId, search, status, assignedEmployeeId, pageable).map(this::mapToDto);
+
+        return customerRepository.findActiveWithSearch(dealerId, s, status, assignedEmployeeId, pageable).map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)

@@ -1,15 +1,18 @@
 package com.hyundai.dms.repository;
 
 import com.hyundai.dms.entity.Vehicle;
+import com.querydsl.core.types.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
+public interface VehicleRepository extends JpaRepository<Vehicle, Long>,
+        QuerydslPredicateExecutor<Vehicle> {
     @Query("SELECT SUM(v.stock) FROM Vehicle v WHERE v.dealerId = :dealerId")
     Long sumTotalStockByDealerId(@Param("dealerId") Long dealerId);
 

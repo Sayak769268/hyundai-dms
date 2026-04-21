@@ -7,6 +7,7 @@ import com.hyundai.dms.exception.ResourceNotFoundException;
 import com.hyundai.dms.repository.UserRepository;
 import com.hyundai.dms.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -15,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class VehicleServiceImpl {
@@ -55,11 +57,12 @@ public class VehicleServiceImpl {
 
     @Transactional(readOnly = true)
     public Page<VehicleDto> getAllVehicles(String search, String status, java.math.BigDecimal minPrice, java.math.BigDecimal maxPrice, Integer year, Pageable pageable) {
+        String s = (search == null || search.isBlank()) ? null : search;
         if (isAdmin()) {
-            return vehicleRepository.findWithSearchAll(search, status, minPrice, maxPrice, year, pageable).map(this::mapToDto);
+            return vehicleRepository.findWithSearchAll(s, status, minPrice, maxPrice, year, pageable).map(this::mapToDto);
         }
         Long dealerId = getCurrentDealerId();
-        return vehicleRepository.findWithSearch(dealerId, search, status, minPrice, maxPrice, year, pageable).map(this::mapToDto);
+        return vehicleRepository.findWithSearch(dealerId, s, status, minPrice, maxPrice, year, pageable).map(this::mapToDto);
     }
 
     @Transactional(readOnly = true)

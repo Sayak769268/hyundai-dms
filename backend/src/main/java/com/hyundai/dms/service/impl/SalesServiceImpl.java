@@ -14,6 +14,7 @@ import com.hyundai.dms.repository.SalesOrderRepository;
 import com.hyundai.dms.repository.UserRepository;
 import com.hyundai.dms.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SalesServiceImpl {
@@ -55,11 +57,13 @@ public class SalesServiceImpl {
 
     @Transactional(readOnly = true)
     public Page<SalesOrderDto> getAllSalesOrders(String search, String status, java.math.BigDecimal minAmount, java.math.BigDecimal maxAmount, java.time.LocalDateTime fromDate, java.time.LocalDateTime toDate, Pageable pageable) {
-        String s = (search == null || search.isEmpty()) ? null : search;
-        String st = (status == null || status.isEmpty()) ? null : status;
+        String s  = (search == null || search.isBlank()) ? null : search;
+        String st = (status == null || status.isBlank()) ? null : status;
+
         if (isAdmin()) {
             return salesOrderRepository.findWithFiltersAdmin(s, st, minAmount, maxAmount, fromDate, toDate, pageable).map(this::mapToDto);
         }
+
         Long dealerId = getCurrentDealerId();
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isEmployee = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE"));
@@ -71,6 +75,7 @@ public class SalesServiceImpl {
             }
             return Page.empty(pageable);
         }
+
         return salesOrderRepository.findWithFilters(dealerId, s, st, minAmount, maxAmount, fromDate, toDate, pageable).map(this::mapToDto);
     }
 

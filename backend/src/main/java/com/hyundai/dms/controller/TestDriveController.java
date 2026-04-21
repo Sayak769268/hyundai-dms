@@ -11,6 +11,7 @@ import com.hyundai.dms.repository.TestDriveRepository;
 import com.hyundai.dms.repository.UserRepository;
 import com.hyundai.dms.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/test-drives")
 @RequiredArgsConstructor
